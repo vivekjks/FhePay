@@ -62,11 +62,34 @@ export function Dashboard() {
               Need help? See{' '}
               <Link to="/resources" style={{ fontWeight: 600 }}>
                 Resources
+              </Link>{' '}
+              or{' '}
+              <Link to="/status" style={{ fontWeight: 600 }}>
+                Status
               </Link>
               .
             </li>
           </ol>
         </motion.section>
+      )}
+
+      {contract && !isConnected && (
+        <motion.div
+          className="card"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ marginBottom: '1rem', borderColor: 'rgba(255,182,193,0.28)' }}
+        >
+          <strong style={{ color: 'var(--fg)' }}>Connect your wallet</strong>
+          <p className="prose-muted" style={{ margin: '0.5rem 0 0.75rem' }}>
+            The console needs an active Sepolia connection. After connecting, wait for <strong>CoFHE: ready</strong>. If
+            something looks off, open the{' '}
+            <Link to="/status" style={{ fontWeight: 600 }}>
+              Status
+            </Link>{' '}
+            page.
+          </p>
+        </motion.div>
       )}
 
       {!contract && (

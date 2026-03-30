@@ -63,6 +63,8 @@ export function Footer() {
           <span className="badge">Sepolia</span>
           <Link to="/">Home</Link>
           <Link to="/app">App</Link>
+          <Link to="/how-it-works">How it works</Link>
+          <Link to="/status">Status</Link>
           <Link to="/resources">Resources</Link>
           <a href="https://cofhe-docs.fhenix.zone/" target="_blank" rel="noreferrer">
             Docs

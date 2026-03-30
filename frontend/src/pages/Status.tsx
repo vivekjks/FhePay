@@ -5,6 +5,7 @@ import { sepolia } from 'wagmi/chains';
 import { getFhePayAddress } from '../constants';
 import { fhePayAbi } from '../abi/fhepay';
 import { useCofheReady } from '../hooks/useCofheReady';
+import { ConnectBar } from '../components/ConnectBar';
 
 function Row({ label, ok, detail }: { label: string; ok: boolean; detail: string }) {
   return (
@@ -60,13 +61,19 @@ export function Status() {
         </p>
       </motion.header>
 
+      <ConnectBar />
+
       <section className="card" style={{ marginTop: '1.5rem' }}>
         <h2 className="section-title">Checks</h2>
         <Row label="Contract env" ok={envOk} detail={envOk ? `Address: ${contract}` : 'Set VITE_FHEPAY_ADDRESS in .env.local'} />
         <Row
           label="Wallet"
           ok={isConnected}
-          detail={isConnected ? `Connected: ${address?.slice(0, 6)}…${address?.slice(-4)}` : 'Connect from the App page'}
+          detail={
+            isConnected
+              ? `Connected: ${address?.slice(0, 6)}…${address?.slice(-4)}`
+              : 'Use the bar below or open App to connect'
+          }
         />
         <Row
           label="Network"

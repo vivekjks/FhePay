@@ -131,8 +131,14 @@ export function Home() {
             <Link to="/app" className="btn">
               Launch app
             </Link>
+            <Link to="/how-it-works" className="btn btn-ghost">
+              How it works
+            </Link>
             <Link to="/resources" className="btn btn-ghost">
               Docs & FAQ
+            </Link>
+            <Link to="/status" className="btn btn-ghost">
+              Connection status
             </Link>
           </motion.div>
         </div>

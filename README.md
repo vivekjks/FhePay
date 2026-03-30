@@ -14,6 +14,7 @@ Official CoFHE documentation: [https://cofhe-docs.fhenix.zone/](https://cofhe-do
 - [Who is it for?](#who-is-it-for)
 - [Architecture](#architecture)
 - [User flows (end-to-end)](#user-flows-end-to-end)
+- [Site map (routes)](#site-map-routes)
 - [Repository layout](#repository-layout)
 - [Prerequisites](#prerequisites)
 - [Smart contracts](#smart-contracts)
@@ -44,7 +45,7 @@ FhePay shows how **fully homomorphic encryption (FHE)** can keep amounts confide
 
 | Layer | Role |
 |--------|------|
-| **React (Vite)** | Wallet connection (wagmi + injected), UI, motion, routing (`/`, `/app`, `/resources`) |
+| **React (Vite)** | Wallet connection (wagmi + injected), UI, motion, routing (see [Site map](#site-map-routes)) |
 | **@cofhe/sdk** | `encryptInputs`, permits, `decryptForView` for ciphertext handles |
 | **FhePay.sol** | `euint32` salary + balance per employee; `FHE.add`, `FHE.gte`, `FHE.select` for pay/withdraw; ACL via `FHE.allowThis` / `FHE.allow` / `FHE.allowSender` |
 | **Sepolia** | Chain id `11155111` — CoFHE-supported testnet |
