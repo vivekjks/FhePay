@@ -8,3 +8,5 @@ typechain-types/
 *.log
 coverage/
 .openzeppelin/
+
+.vercel

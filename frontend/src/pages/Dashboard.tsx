@@ -6,13 +6,11 @@ import { ContractStatus } from '../components/ContractStatus';
 import { EmployerPanel } from '../components/EmployerPanel';
 import { EmployeePanel } from '../components/EmployeePanel';
 import { ActivityLog } from '../components/ActivityLog';
-import { useCofheSync } from '../hooks/useCofheSync';
 import { getFhePayAddress } from '../constants';
 import { fhePayAbi } from '../abi/fhepay';
 import { useCofheReady } from '../hooks/useCofheReady';
 
 export function Dashboard() {
-  useCofheSync();
   const cofheReady = useCofheReady();
   const { address, isConnected } = useAccount();
   const contract = getFhePayAddress();

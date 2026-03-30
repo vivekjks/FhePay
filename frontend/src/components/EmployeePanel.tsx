@@ -8,9 +8,11 @@ import { cofheClient } from '../cofhe';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
 import { wagmiConfig } from '../wagmi';
+import { useCofheReady } from '../hooks/useCofheReady';
 import type { Hash } from 'viem';
 
 export function EmployeePanel() {
+  const cofheReady = useCofheReady();
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const contract = getFhePayAddress();
@@ -24,8 +26,8 @@ export function EmployeePanel() {
 
   async function decryptBalance() {
     setMsg(null);
-    if (!contract || !address || !publicClient || !cofheClient.connected) {
-      setMsg('Connect wallet on Sepolia and wait for CoFHE.');
+    if (!contract || !address || !publicClient || !cofheReady) {
+      setMsg('Connect wallet on Sepolia and wait for CoFHE (see Status page if stuck).');
       return;
     }
     setLoading(true);
@@ -48,8 +50,8 @@ export function EmployeePanel() {
 
   async function decryptSalary() {
     setMsg(null);
-    if (!contract || !address || !publicClient || !cofheClient.connected) {
-      setMsg('Connect wallet on Sepolia and wait for CoFHE.');
+    if (!contract || !address || !publicClient || !cofheReady) {
+      setMsg('Connect wallet on Sepolia and wait for CoFHE (see Status page if stuck).');
       return;
     }
     setLoading(true);

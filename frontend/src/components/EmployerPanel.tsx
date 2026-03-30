@@ -9,8 +9,10 @@ import { cofheClient } from '../cofhe';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
 import { wagmiConfig } from '../wagmi';
+import { useCofheReady } from '../hooks/useCofheReady';
 
 export function EmployerPanel() {
+  const cofheReady = useCofheReady();
   const { address } = useAccount();
   const contract = getFhePayAddress();
   const [employee, setEmployee] = useState('');
@@ -23,7 +25,7 @@ export function EmployerPanel() {
     useWriteContract();
   const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  const disabled = !contract || !address || !cofheClient.connected;
+  const disabled = !contract || !address || !cofheReady;
 
   async function onSetSalary(e: React.FormEvent) {
     e.preventDefault();
@@ -119,7 +121,9 @@ export function EmployerPanel() {
         <p style={{ color: '#ffb6c1' }}>
           {!contract
             ? 'Set VITE_FHEPAY_ADDRESS after deployment.'
-            : 'Connect wallet and wait for CoFHE session.'}
+            : !address
+              ? 'Connect your wallet.'
+              : 'Wait for CoFHE (encrypt needs a live session). Try the Status page if this persists.'}
         </p>
       )}
       <form onSubmit={onSetSalary} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>

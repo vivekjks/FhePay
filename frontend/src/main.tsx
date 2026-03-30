@@ -5,6 +5,7 @@ import { WagmiProvider } from 'wagmi';
 import { BrowserRouter } from 'react-router-dom';
 import { wagmiConfig } from './wagmi';
 import { App } from './App';
+import { ScrollToTop } from './components/ScrollToTop';
 import './theme.css';
 
 const queryClient = new QueryClient();
@@ -14,6 +15,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          <ScrollToTop />
           <App />
         </BrowserRouter>
       </QueryClientProvider>
