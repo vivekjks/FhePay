@@ -1,0 +1,10 @@
+node_modules/
+dist/
+cache/
+artifacts/
+typechain-types/
+.env
+.env.local
+*.log
+coverage/
+.openzeppelin/

@@ -1,0 +1,11 @@
+{
+  "name": "fhepay",
+  "private": true,
+  "scripts": {
+    "build:contracts": "npm run build --prefix contracts",
+    "test:contracts": "npm run test --prefix contracts",
+    "dev": "npm run dev --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "deploy:sepolia": "npm run deploy:sepolia --prefix contracts"
+  }
+}
