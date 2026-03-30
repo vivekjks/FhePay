@@ -81,6 +81,21 @@ Browser (encrypt) → Transaction (handles + proofs) → Contract (FHE ops) → 
 
 ---
 
+## Site map (routes)
+
+| Path | Purpose |
+|------|---------|
+| `/` | Marketing home — hero, features, links |
+| `/app` | Dashboard — connect wallet, employer / employee panels, activity |
+| `/how-it-works` | Deep dive — data flow and FHE model |
+| `/status` | Diagnostics — contract env, chain, block, CoFHE readiness |
+| `/resources` | External docs and FAQ-style links |
+| `*` | 404 — unknown routes |
+
+CoFHE sync runs app-wide so **Status** reflects the same SDK session as **App** after you connect.
+
+---
+
 ## Repository layout
 
 | Path | Contents |
