@@ -6,6 +6,8 @@ Official CoFHE documentation: [https://cofhe-docs.fhenix.zone/](https://cofhe-do
 
 ---
 
+
+
 ## Table of contents
 
 - [What problem does this solve?](#what-problem-does-this-solve)
