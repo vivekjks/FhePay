@@ -11,7 +11,7 @@ It now supports:
 
 Official CoFHE docs: [https://cofhe-docs.fhenix.zone/](https://cofhe-docs.fhenix.zone/)
 
-Live app: [https://fhepayhn.vercel.app](https://fhepayhn.vercel.app)
+Live app: [https://fhepaye.vercel.app](https://fhepaye.vercel.app)
 
 ## Live deployment
 
@@ -175,6 +175,7 @@ Local verification completed:
 - `contracts`: tests passed
 - `frontend`: build passed
 - `frontend`: preview responded with HTTP `200`
+- production app: [https://fhepaye.vercel.app](https://fhepaye.vercel.app) responded with HTTP `200` on April 21, 2026
 
 Live Sepolia smoke test completed against the deployed contract:
 - funded treasury
