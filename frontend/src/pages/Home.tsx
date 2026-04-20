@@ -24,25 +24,28 @@ function IconShield() {
   );
 }
 
-function IconCpu() {
+function IconVault() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <rect x="6" y="6" width="12" height="12" rx="2" />
-      <path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2" />
+      <path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7z" />
+      <path d="M9 12h6" />
+      <circle cx="15.5" cy="12" r="0.5" fill="currentColor" />
     </svg>
   );
 }
 
-function IconEye() {
+function IconFlow() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
-      <circle cx="12" cy="12" r="3" />
+      <path d="M4 7h11" />
+      <path d="M11 4l4 3-4 3" />
+      <path d="M20 17H9" />
+      <path d="M13 14l-4 3 4 3" />
     </svg>
   );
 }
 
-function IconUsers() {
+function IconTeam() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
       <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -67,7 +70,7 @@ export function Home() {
     <div style={{ position: 'relative' }}>
       <motion.header
         className="hero-block"
-        style={{ textAlign: 'center', padding: '2.5rem 0 2.5rem', position: 'relative', minHeight: '420px' }}
+        style={{ textAlign: 'center', padding: '2.5rem 0 2.5rem', position: 'relative', minHeight: '440px' }}
         variants={heroContainer}
         initial="hidden"
         animate="show"
@@ -75,87 +78,93 @@ export function Home() {
         <HomeDecor />
         <div className="home-hero-inner">
           <motion.p className="badge" style={{ marginBottom: '1rem' }} variants={heroItem} transition={t}>
-            Ethereum Sepolia · Fhenix CoFHE
+            Ethereum Sepolia x Fhenix CoFHE
           </motion.p>
           <motion.h1
             variants={heroItem}
             transition={t}
             style={{
               fontFamily: 'Outfit, sans-serif',
-              fontSize: 'clamp(2.1rem, 5vw, 3.35rem)',
+              fontSize: 'clamp(2.2rem, 5vw, 3.5rem)',
               fontWeight: 700,
               margin: '0 0 1rem',
               letterSpacing: '-0.03em',
-              lineHeight: 1.12,
+              lineHeight: 1.08,
             }}
           >
-            Payroll that stays{' '}
-            <span className="gradient-text">confidential</span>
+            Private payroll,
             <br />
-            on a public chain
+            <span className="gradient-text">verified on-chain</span>
           </motion.h1>
           <motion.p
             variants={heroItem}
             transition={t}
             style={{
-              maxWidth: 620,
+              maxWidth: 700,
               margin: '0 auto 1rem',
-              color: 'rgba(255,255,255,0.68)',
+              color: 'rgba(255,255,255,0.7)',
               fontSize: '1.08rem',
-              lineHeight: 1.65,
+              lineHeight: 1.7,
             }}
           >
-            FhePay is a confidential payroll layer: salaries and vault balances live as encrypted values on Ethereum.
-            Employers configure pay in plaintext in the app — the chain only stores ciphertext handles. Employees unlock
-            their own numbers locally; everyone else sees activity, not amounts.
-          </motion.p>
-          <motion.p
-            variants={heroItem}
-            transition={t}
-            style={{
-              maxWidth: 580,
-              margin: '0 auto 1.75rem',
-              color: 'rgba(255,255,255,0.5)',
-              fontSize: '0.95rem',
-              lineHeight: 1.6,
-            }}
-          >
-            Built for DAOs, remote teams, and builders who want on-chain payroll without public salary drama — powered by
-            Fhenix CoFHE homomorphic operations inside the contract.
+            FhePay keeps salaries and balances encrypted on Ethereum while still letting teams run payroll from a funded
+            on-chain treasury. Employers schedule and batch payroll privately. Employees decrypt their own balance, then
+            claim ETH into their wallet with a verifiable threshold-network proof.
           </motion.p>
           <motion.div
             variants={heroItem}
             transition={t}
-            style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center', marginTop: '1.5rem' }}
           >
             <Link to="/app" className="btn">
               Launch app
             </Link>
             <Link to="/how-it-works" className="btn btn-ghost">
-              How it works
-            </Link>
-            <Link to="/resources" className="btn btn-ghost">
-              Docs & FAQ
+              Explore the flow
             </Link>
             <Link to="/status" className="btn btn-ghost">
-              Connection status
+              Check status
             </Link>
           </motion.div>
         </div>
       </motion.header>
 
+      <motion.section className="stats-grid" style={{ marginBottom: '1.25rem' }} {...inView}>
+        <div className="stat-card">
+          <span className="label">Privacy model</span>
+          <strong>Encrypted salary + balance handles</strong>
+        </div>
+        <div className="stat-card">
+          <span className="label">Settlement</span>
+          <strong>Claimable ETH from employer treasury</strong>
+        </div>
+        <div className="stat-card">
+          <span className="label">Ops upgrade</span>
+          <strong>Single-tx batch payroll + pay interval guard</strong>
+        </div>
+      </motion.section>
+
       <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...inView}>
-        <h2 className="section-title">Why it matters</h2>
+        <h2 className="section-title">What changed in this version</h2>
         <p className="prose-muted">
-          Transparent blockchains are great for verification — but raw amounts on every transfer are a liability for HR:
-          envy, negotiation leaks, and regulatory sensitivity. Traditional “private” payroll is off-chain; FhePay explores a
-          middle path: <strong style={{ color: 'var(--fg)' }}>on-chain settlement with encrypted arithmetic</strong>.
-          Observers can see <em>that</em> someone was paid, not <em>how much</em>, unless you deliberately disclose.
+          The app is no longer just a confidential ledger demo. It now supports a real treasury-backed payroll flow:
+          the employer funds the contract with ETH, payroll accrues in encrypted balances, and employees can request and
+          claim real ETH withdrawals on-chain. We also upgraded amounts to <code>euint128</code> and replaced multi-click
+          batch UX with a single batch transaction.
         </p>
       </motion.section>
 
       <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...inView}>
-        <h2 className="section-title">What you get</h2>
+        <h2 className="section-title">Why FhePay is useful</h2>
+        <p className="prose-muted">
+          Public chains make settlement easy but salaries painfully transparent. FhePay uses CoFHE to preserve
+          confidentiality without giving up verifiable execution. Observers can see that payroll happened, who
+          interacted, and when treasury funds moved, but not the salary numbers that drove those actions.
+        </p>
+      </motion.section>
+
+      <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...inView}>
+        <h2 className="section-title">Core capabilities</h2>
         <div className="feature-grid">
           <div className="feature-card">
             <div className="feature-icon">
@@ -163,79 +172,58 @@ export function Home() {
             </div>
             <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Client-side encryption</h3>
             <p className="prose-muted" style={{ margin: 0, fontSize: '0.95rem' }}>
-              Salaries and withdrawals are encrypted in the browser before they reach Sepolia. The contract verifies ZK
-              proofs and stores handles — not plaintext.
+              Salaries and withdrawal requests are encrypted in the browser before they ever reach Sepolia.
             </p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">
-              <IconCpu />
+              <IconVault />
             </div>
-            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Homomorphic payroll</h3>
+            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Treasury-backed settlement</h3>
             <p className="prose-muted" style={{ margin: 0, fontSize: '0.95rem' }}>
-              Pay periods add encrypted salary into encrypted balances. Withdrawals compare amounts in ciphertext so
-              balances stay private end-to-end.
+              Employers fund a payroll treasury with ETH, and employees claim verified withdrawals into their wallet.
             </p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">
-              <IconEye />
+              <IconFlow />
             </div>
-            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Decrypt where it belongs</h3>
+            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Request then claim</h3>
             <p className="prose-muted" style={{ margin: 0, fontSize: '0.95rem' }}>
-              With ACL permits, employees decrypt their own row off-chain. Auditors and new features can build on
-              selective disclosure — not an all-or-nothing leak.
+              The withdrawal flow follows the documented decrypt-for-transaction pattern with on-chain proof
+              verification.
             </p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">
-              <IconUsers />
+              <IconTeam />
             </div>
-            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Two clear roles</h3>
+            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Production-oriented payroll ops</h3>
             <p className="prose-muted" style={{ margin: 0, fontSize: '0.95rem' }}>
-              The deployer acts as employer (set salary, pay, batch). Every other wallet uses the employee vault for its
-              address — ideal for demos and user testing.
+              Pay intervals prevent accidental double-pay, and batch payroll runs in one transaction instead of many.
             </p>
           </div>
         </div>
       </motion.section>
 
       <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...inView}>
-        <h2 className="section-title">How Fhenix CoFHE fits</h2>
-        <ul className="prose-muted" style={{ paddingLeft: '1.2rem', margin: 0 }}>
-          <li style={{ marginBottom: '0.65rem' }}>
-            <strong style={{ color: 'var(--fg)' }}>Encrypt</strong> — plaintext becomes a ciphertext + proof, bound to
-            your wallet and chain id.
-          </li>
-          <li style={{ marginBottom: '0.65rem' }}>
-            <strong style={{ color: 'var(--fg)' }}>Compute</strong> — the contract runs FHE.add / gte / select on handles;
-            gas is real even though values are hidden.
-          </li>
-          <li>
-            <strong style={{ color: 'var(--fg)' }}>Decrypt</strong> — the SDK unwraps handles you are allowed to see;
-            permits align with <code style={{ color: 'var(--accent)' }}>FHE.allow</code> rules in the contract.
-          </li>
-        </ul>
-      </motion.section>
-
-      <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...inView}>
-        <h2 className="section-title">How it works (four steps)</h2>
+        <h2 className="section-title">Four-step experience</h2>
         <div className="steps">
           <div className="step">
             <span className="step-num">1</span>
             <div>
               <strong style={{ color: 'var(--fg)' }}>Connect on Sepolia</strong>
               <p className="prose-muted" style={{ margin: '0.35rem 0 0', fontSize: '0.95rem' }}>
-                Switch your wallet to Ethereum Sepolia and open the app. Wait until the CoFHE badge shows “ready”.
+                Open the dashboard, connect the owner wallet, and wait until CoFHE is ready.
               </p>
             </div>
           </div>
           <div className="step">
             <span className="step-num">2</span>
             <div>
-              <strong style={{ color: 'var(--fg)' }}>Employer sets encrypted salary</strong>
+              <strong style={{ color: 'var(--fg)' }}>Fund + configure payroll</strong>
               <p className="prose-muted" style={{ margin: '0.35rem 0 0', fontSize: '0.95rem' }}>
-                Add an employee address and a salary in a plain unit (e.g. whole dollars). The UI encrypts before sending.
+                Deposit treasury ETH, set confidential salaries, and choose the payroll cadence.
               </p>
             </div>
           </div>
@@ -244,47 +232,36 @@ export function Home() {
             <div>
               <strong style={{ color: 'var(--fg)' }}>Run payroll</strong>
               <p className="prose-muted" style={{ margin: '0.35rem 0 0', fontSize: '0.95rem' }}>
-                Pay one period or batch several addresses. Each tx is a normal Sepolia transaction — fund gas with
-                faucet ETH.
+                Pay one employee or execute a single-transaction batch payroll run for the whole team.
               </p>
             </div>
           </div>
           <div className="step">
             <span className="step-num">4</span>
             <div>
-              <strong style={{ color: 'var(--fg)' }}>Employee decrypts & withdraws</strong>
+              <strong style={{ color: 'var(--fg)' }}>Claim ETH privately</strong>
               <p className="prose-muted" style={{ margin: '0.35rem 0 0', fontSize: '0.95rem' }}>
-                As the employee wallet, decrypt balance and optionally withdraw using an encrypted amount. See Resources
-                for troubleshooting.
+                Employees decrypt their balance locally and claim ETH using a verified decryption proof.
               </p>
             </div>
           </div>
         </div>
       </motion.section>
 
-      <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...inView}>
-        <h2 className="section-title">Roadmap & ideas</h2>
-        <p className="prose-muted">
-          Streaming payouts, multi-token vaults, org-scoped access, and auditor keys are natural extensions. This MVP
-          nails the core loop: <strong style={{ color: 'var(--fg)' }}>encrypted configuration → homomorphic pay → local
-          decrypt</strong> on a public testnet you can share with judges or teammates today.
-        </p>
-      </motion.section>
-
       <motion.div className="cta-panel" {...inView}>
         <h2 className="section-title" style={{ fontSize: '1.5rem' }}>
-          Ready to try it?
+          Ready to test the full flow?
         </h2>
-        <p className="prose-muted" style={{ margin: '0 0 1.25rem', maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
-          Connect your wallet, confirm you are on Sepolia, and explore employer and employee flows side by side with two
-          accounts.
+        <p className="prose-muted" style={{ margin: '0 0 1.25rem', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
+          Use one wallet as the employer and a second wallet as the employee to experience the entire payroll request and
+          claim journey end-to-end.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
           <Link to="/app" className="btn">
-            Go to app
+            Open dashboard
           </Link>
           <Link to="/resources" className="btn btn-ghost">
-            Read the FAQ
+            Read the docs
           </Link>
         </div>
       </motion.div>
