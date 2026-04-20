@@ -1,6 +1,6 @@
 import { useAccount, useChainId, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
-import { sepolia } from 'wagmi/chains';
 import { motion } from 'framer-motion';
+import { sepolia } from 'viem/chains';
 
 export function ConnectBar() {
   const { address, isConnected } = useAccount();

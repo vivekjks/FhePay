@@ -1,6 +1,6 @@
 import { createConfig, http } from 'wagmi';
-import { sepolia } from 'wagmi/chains';
 import { injected } from 'wagmi/connectors';
+import { sepolia } from 'viem/chains';
 
 const rpc = import.meta.env.VITE_SEPOLIA_RPC_URL || 'https://rpc.sepolia.org';
 

@@ -1,15 +1,25 @@
 import { useState } from 'react';
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
-import { sepolia } from 'wagmi/chains';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { motion } from 'framer-motion';
 import { Encryptable, assertCorrectEncryptedItemInput, FheTypes } from '@cofhe/sdk';
+import { sepolia } from 'viem/chains';
 import { cofheClient } from '../cofhe';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
 import { wagmiConfig } from '../wagmi';
 import { useCofheReady } from '../hooks/useCofheReady';
-import type { Hash } from 'viem';
+
+type Hash = `0x${string}`;
+
+const MAX_UINT32 = 2n ** 32n - 1n;
+
+function parseUint32Input(value: string): bigint | null {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const parsed = BigInt(trimmed);
+  return parsed <= MAX_UINT32 ? parsed : null;
+}
 
 export function EmployeePanel() {
   const cofheReady = useCofheReady();
@@ -24,12 +34,17 @@ export function EmployeePanel() {
 
   const { writeContractAsync } = useWriteContract();
 
+  async function ensureSelfPermit() {
+    await cofheClient.permits.getOrCreateSelfPermit();
+  }
+
   async function decryptBalance() {
     setMsg(null);
     if (!contract || !address || !publicClient || !cofheReady) {
       setMsg('Connect wallet on Sepolia and wait for CoFHE (see Status page if stuck).');
       return;
     }
+
     setLoading(true);
     try {
       const ct = (await publicClient.readContract({
@@ -39,8 +54,9 @@ export function EmployeePanel() {
         args: [address],
       })) as Hash;
 
-      const v = await cofheClient.decryptForView(ct, FheTypes.Uint32).execute();
-      setBalance(typeof v === 'bigint' ? v : BigInt(String(v)));
+      await ensureSelfPermit();
+      const value = await cofheClient.decryptForView(ct, FheTypes.Uint32).withPermit().execute();
+      setBalance(typeof value === 'bigint' ? value : BigInt(String(value)));
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Decrypt failed');
     } finally {
@@ -54,6 +70,7 @@ export function EmployeePanel() {
       setMsg('Connect wallet on Sepolia and wait for CoFHE (see Status page if stuck).');
       return;
     }
+
     setLoading(true);
     try {
       const ct = (await publicClient.readContract({
@@ -63,8 +80,9 @@ export function EmployeePanel() {
         args: [address],
       })) as Hash;
 
-      const v = await cofheClient.decryptForView(ct, FheTypes.Uint32).execute();
-      setSalary(typeof v === 'bigint' ? v : BigInt(String(v)));
+      await ensureSelfPermit();
+      const value = await cofheClient.decryptForView(ct, FheTypes.Uint32).withPermit().execute();
+      setSalary(typeof value === 'bigint' ? value : BigInt(String(value)));
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Decrypt failed');
     } finally {
@@ -76,23 +94,25 @@ export function EmployeePanel() {
     e.preventDefault();
     setMsg(null);
     if (!contract || !address) return;
-    const n = BigInt(Math.floor(Number(withdrawAmt)));
-    if (n < 0n || n > 2n ** 32n - 1n) {
+
+    const parsedAmount = parseUint32Input(withdrawAmt);
+    if (parsedAmount === null) {
       setMsg('Invalid amount.');
       return;
     }
+
     setLoading(true);
     try {
-      const [enc] = await cofheClient.encryptInputs([Encryptable.uint32(n)]).execute();
+      const [enc] = await cofheClient.encryptInputs([Encryptable.uint32(parsedAmount)]).execute();
       assertCorrectEncryptedItemInput(enc);
-      const h = await writeContractAsync({
+      const txHash = await writeContractAsync({
         address: contract,
         abi: fhePayAbi,
         chainId: sepolia.id,
         functionName: 'withdraw',
         args: [enc],
       });
-      await waitForTransactionReceipt(wagmiConfig, { hash: h });
+      await waitForTransactionReceipt(wagmiConfig, { hash: txHash });
       setMsg('Withdrawal confirmed. Decrypt balance again to see the new amount.');
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Withdraw failed');
@@ -108,14 +128,14 @@ export function EmployeePanel() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <h2 style={{ marginTop: 0, fontFamily: 'Outfit, sans-serif' }}>Employee · vault</h2>
+      <h2 style={{ marginTop: 0, fontFamily: 'Outfit, sans-serif' }}>Employee - vault</h2>
       <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
-        Your balance and salary are ciphertexts on-chain. Decrypt locally with your permit — only you
+        Your balance and salary are ciphertexts on-chain. Decrypt locally with your permit - only you
         (and the contract) receive the handles needed for this.
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '1rem' }}>
         <button type="button" className="btn" disabled={loading} onClick={() => void decryptBalance()}>
-          {loading ? '…' : 'Decrypt balance'}
+          {loading ? '...' : 'Decrypt balance'}
         </button>
         <button type="button" className="btn btn-ghost" disabled={loading} onClick={() => void decryptSalary()}>
           Decrypt salary

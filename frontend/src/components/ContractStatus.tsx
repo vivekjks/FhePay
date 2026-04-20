@@ -1,5 +1,5 @@
-import { sepolia } from 'wagmi/chains';
 import { getFhePayAddress } from '../constants';
+import { sepolia } from 'viem/chains';
 
 export function ContractStatus() {
   const addr = getFhePayAddress();

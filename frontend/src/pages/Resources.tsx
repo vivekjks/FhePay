@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { sepolia } from 'wagmi/chains';
 import { getFhePayAddress } from '../constants';
+import { sepolia } from 'viem/chains';
 
 const inViewProps = (reduce: boolean | null) => ({
   initial: { opacity: 0, y: 12 },

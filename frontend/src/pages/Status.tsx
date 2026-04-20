@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useAccount, useBlockNumber, useChainId, useReadContract } from 'wagmi';
-import { sepolia } from 'wagmi/chains';
 import { getFhePayAddress } from '../constants';
 import { fhePayAbi } from '../abi/fhepay';
 import { useCofheReady } from '../hooks/useCofheReady';
 import { ConnectBar } from '../components/ConnectBar';
+import { sepolia } from 'viem/chains';
 
 function Row({ label, ok, detail }: { label: string; ok: boolean; detail: string }) {
   return (

@@ -1,15 +1,26 @@
 import { useState } from 'react';
-import { isAddress, type Address } from 'viem';
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
-import { sepolia } from 'wagmi/chains';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { motion } from 'framer-motion';
 import { Encryptable, assertCorrectEncryptedItemInput } from '@cofhe/sdk';
+import { sepolia } from 'viem/chains';
+import { isAddress } from 'viem/utils';
 import { cofheClient } from '../cofhe';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
 import { wagmiConfig } from '../wagmi';
 import { useCofheReady } from '../hooks/useCofheReady';
+
+type Address = `0x${string}`;
+
+const MAX_UINT32 = 2n ** 32n - 1n;
+
+function parseUint32Input(value: string): bigint | null {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const parsed = BigInt(trimmed);
+  return parsed <= MAX_UINT32 ? parsed : null;
+}
 
 export function EmployerPanel() {
   const cofheReady = useCofheReady();
@@ -21,8 +32,7 @@ export function EmployerPanel() {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const { writeContract, writeContractAsync, data: hash, error: writeErr, isPending } =
-    useWriteContract();
+  const { writeContract, writeContractAsync, data: hash, error: writeErr, isPending } = useWriteContract();
   const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   const disabled = !contract || !address || !cofheReady;
@@ -34,14 +44,16 @@ export function EmployerPanel() {
       setMsg('Enter a valid employee address.');
       return;
     }
-    const n = BigInt(Math.floor(Number(salary)));
-    if (n < 0n || n > 2n ** 32n - 1n) {
+
+    const parsedSalary = parseUint32Input(salary);
+    if (parsedSalary === null) {
       setMsg('Salary must be a valid uint32 value.');
       return;
     }
+
     setBusy(true);
     try {
-      const [enc] = await cofheClient.encryptInputs([Encryptable.uint32(n)]).execute();
+      const [enc] = await cofheClient.encryptInputs([Encryptable.uint32(parsedSalary)]).execute();
       assertCorrectEncryptedItemInput(enc);
       await writeContractAsync({
         address: contract,
@@ -58,13 +70,14 @@ export function EmployerPanel() {
     }
   }
 
-  async function onPayOne(e: React.FormEvent) {
+  function onPayOne(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
     if (!contract || !isAddress(employee)) {
       setMsg('Enter employee address.');
       return;
     }
+
     writeContract({
       address: contract,
       abi: fhePayAbi,
@@ -77,26 +90,28 @@ export function EmployerPanel() {
   async function onBatchPay() {
     setMsg(null);
     if (!contract) return;
-    const parts = batch
+
+    const addrs = batch
       .split(/[\s,]+/)
       .map((s) => s.trim())
-      .filter(Boolean);
-    const addrs = parts.filter((p) => isAddress(p)) as Address[];
+      .filter((s): s is Address => isAddress(s));
+
     if (addrs.length === 0) {
       setMsg('Paste comma- or space-separated employee addresses.');
       return;
     }
+
     setBusy(true);
     try {
       for (const emp of addrs) {
-        const h = await writeContractAsync({
+        const txHash = await writeContractAsync({
           address: contract,
           abi: fhePayAbi,
           chainId: sepolia.id,
           functionName: 'paySalary',
           args: [emp],
         });
-        await waitForTransactionReceipt(wagmiConfig, { hash: h });
+        await waitForTransactionReceipt(wagmiConfig, { hash: txHash });
       }
       setMsg(`Paid ${addrs.length} employees (one tx each).`);
     } catch (err) {
@@ -113,7 +128,7 @@ export function EmployerPanel() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <h2 style={{ marginTop: 0, fontFamily: 'Outfit, sans-serif' }}>Employer · payroll setup</h2>
+      <h2 style={{ marginTop: 0, fontFamily: 'Outfit, sans-serif' }}>Employer - payroll setup</h2>
       <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
         Salaries are encrypted with CoFHE before they hit the chain. Only ciphertext handles are stored publicly.
       </p>
@@ -134,7 +149,7 @@ export function EmployerPanel() {
           <input
             id="emp"
             className="input"
-            placeholder="0x…"
+            placeholder="0x..."
             value={employee}
             onChange={(e) => setEmployee(e.target.value)}
             autoComplete="off"
@@ -153,7 +168,7 @@ export function EmployerPanel() {
           />
         </div>
         <button type="submit" className="btn" disabled={disabled || busy || isPending}>
-          {busy ? 'Encrypting…' : 'Encrypt & set salary'}
+          {busy ? 'Encrypting...' : 'Encrypt & set salary'}
         </button>
       </form>
       <form onSubmit={onPayOne} style={{ marginTop: '1.5rem', display: 'grid', gap: '0.75rem' }}>
@@ -163,13 +178,13 @@ export function EmployerPanel() {
       </form>
       <div style={{ marginTop: '1.5rem' }}>
         <label className="label" htmlFor="batch">
-          Batch pay — addresses
+          Batch pay - addresses
         </label>
         <textarea
           id="batch"
           className="input"
           rows={3}
-          placeholder="0xabc…, 0xdef…"
+          placeholder="0xabc..., 0xdef..."
           value={batch}
           onChange={(e) => setBatch(e.target.value)}
           style={{ resize: 'vertical' }}
@@ -191,7 +206,7 @@ export function EmployerPanel() {
       )}
       {hash && (
         <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-          Tx: {hash} {confirming ? '(confirming…)' : isSuccess ? '✓' : ''}
+          Tx: {hash} {confirming ? '(confirming...)' : isSuccess ? 'OK' : ''}
         </p>
       )}
     </motion.section>
