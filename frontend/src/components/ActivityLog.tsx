@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { useWatchContractEvent } from 'wagmi';
-import { getFhePayAddress } from '../constants';
 import { fhePayAbi } from '../abi/fhepay';
+import { getFhePayAddress } from '../constants';
 
 type EmployeeLog = { args?: { employee?: `0x${string}` } };
-type AccountLog = { args?: { account?: `0x${string}` } };
+type AccountLog = { args?: { account?: `0x${string}`; amount?: bigint } };
+type TreasuryLog = { args?: { from?: `0x${string}`; amount?: bigint } };
+type BatchLog = { args?: { count?: bigint } };
 
-/** Live tail of contract events (addresses only). Past history requires an indexer or explorer. */
 export function ActivityLog() {
   const contract = getFhePayAddress();
   const [items, setItems] = useState<string[]>([]);
+
+  function push(line: string) {
+    setItems((prev) => [line, ...prev].slice(0, 40));
+  }
 
   useWatchContractEvent({
     address: contract,
@@ -17,10 +22,9 @@ export function ActivityLog() {
     eventName: 'SalarySet',
     enabled: !!contract,
     onLogs(logs: EmployeeLog[]) {
-      for (const log of logs) {
-        const employee = log.args?.employee;
-        if (employee) setItems((prev) => [`SalarySet -> ${employee}`, ...prev].slice(0, 40));
-      }
+      logs.forEach((log) => {
+        if (log.args?.employee) push(`Salary set for ${log.args.employee}`);
+      });
     },
   });
 
@@ -30,23 +34,59 @@ export function ActivityLog() {
     eventName: 'SalaryPaid',
     enabled: !!contract,
     onLogs(logs: EmployeeLog[]) {
-      for (const log of logs) {
-        const employee = log.args?.employee;
-        if (employee) setItems((prev) => [`SalaryPaid -> ${employee}`, ...prev].slice(0, 40));
-      }
+      logs.forEach((log) => {
+        if (log.args?.employee) push(`Payroll sent to ${log.args.employee}`);
+      });
     },
   });
 
   useWatchContractEvent({
     address: contract,
     abi: fhePayAbi,
-    eventName: 'Withdrawn',
+    eventName: 'BatchSalaryPaid',
+    enabled: !!contract,
+    onLogs(logs: BatchLog[]) {
+      logs.forEach((log) => {
+        push(`Batch payroll confirmed for ${(log.args?.count ?? 0n).toString()} employees`);
+      });
+    },
+  });
+
+  useWatchContractEvent({
+    address: contract,
+    abi: fhePayAbi,
+    eventName: 'TreasuryFunded',
+    enabled: !!contract,
+    onLogs(logs: TreasuryLog[]) {
+      logs.forEach((log) => {
+        push(`Treasury funded by ${log.args?.from ?? 'unknown wallet'}`);
+      });
+    },
+  });
+
+  useWatchContractEvent({
+    address: contract,
+    abi: fhePayAbi,
+    eventName: 'WithdrawalRequested',
     enabled: !!contract,
     onLogs(logs: AccountLog[]) {
-      for (const log of logs) {
-        const account = log.args?.account;
-        if (account) setItems((prev) => [`Withdrawn -> ${account}`, ...prev].slice(0, 40));
-      }
+      logs.forEach((log) => {
+        if (log.args?.account) push(`Withdrawal requested by ${log.args.account}`);
+      });
+    },
+  });
+
+  useWatchContractEvent({
+    address: contract,
+    abi: fhePayAbi,
+    eventName: 'WithdrawalClaimed',
+    enabled: !!contract,
+    onLogs(logs: AccountLog[]) {
+      logs.forEach((log) => {
+        if (log.args?.account) {
+          push(`ETH claim settled for ${log.args.account}`);
+        }
+      });
     },
   });
 
@@ -55,18 +95,19 @@ export function ActivityLog() {
   return (
     <section className="card" style={{ marginTop: '1rem' }}>
       <h2 style={{ marginTop: 0, fontFamily: 'Outfit, sans-serif' }}>Live activity</h2>
-      <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.9rem' }}>
-        Shows events while this page is open. Addresses only - never plaintext amounts.
+      <p className="prose-muted" style={{ marginTop: '0.35rem' }}>
+        Watch payroll operations in real time while this page is open. Public events show addresses and settlement
+        actions, while salary amounts remain confidential until a user explicitly claims funds.
       </p>
       {items.length === 0 ? (
-        <p style={{ color: 'rgba(255,255,255,0.5)' }}>Waiting for transactions...</p>
+        <p style={{ color: 'rgba(255,255,255,0.5)' }}>Waiting for payroll activity...</p>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: '1rem 0 0', fontSize: '0.9rem' }}>
-          {items.map((item, i) => (
+        <ul style={{ listStyle: 'none', padding: 0, margin: '1rem 0 0', fontSize: '0.92rem' }}>
+          {items.map((item, index) => (
             <li
-              key={`${item}-${i}`}
+              key={`${item}-${index}`}
               style={{
-                padding: '0.45rem 0',
+                padding: '0.55rem 0',
                 borderBottom: '1px solid var(--border)',
                 wordBreak: 'break-all',
               }}
