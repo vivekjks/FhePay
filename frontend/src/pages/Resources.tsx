@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { getFhePayAddress } from '../constants';
 import { sepolia } from 'viem/chains';
+import { getFhePayAddress } from '../constants';
 
 const inViewProps = (reduce: boolean | null) => ({
   initial: { opacity: 0, y: 12 },
@@ -20,14 +20,14 @@ export function Resources() {
     <div>
       <motion.header style={{ paddingBottom: '1.5rem' }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <p className="badge" style={{ marginBottom: '0.75rem' }}>
-          Help & reference
+          Help and reference
         </p>
         <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: 'clamp(1.85rem, 4vw, 2.25rem)', margin: '0 0 0.5rem' }}>
           Resources
         </h1>
-        <p className="prose-muted" style={{ maxWidth: 680, lineHeight: 1.65, margin: 0 }}>
-          Everything you need to run FhePay on <strong style={{ color: 'var(--fg)' }}>{sepolia.name}</strong>: live
-          contract, official docs, a quick checklist, glossary, and answers to common questions.
+        <p className="prose-muted" style={{ maxWidth: 720, lineHeight: 1.65, margin: 0 }}>
+          Everything you need to demo or evaluate the upgraded FhePay flow on {sepolia.name}: live deployment,
+          documentation, checklists, and troubleshooting for confidential payroll plus ETH settlement.
         </p>
       </motion.header>
 
@@ -36,9 +36,8 @@ export function Resources() {
         {addr ? (
           <>
             <p className="prose-muted">
-              This frontend build points at the FhePay contract below. Inspect bytecode, transactions, and events on
-              Etherscan — you will see <strong style={{ color: 'var(--fg)' }}>addresses</strong> in logs, never plaintext
-              salaries.
+              This frontend points at the deployed payroll contract below. Etherscan will show treasury funding,
+              payroll events, and ETH claim settlements, while encrypted salary and balance values stay private.
             </p>
             <code
               style={{
@@ -62,8 +61,7 @@ export function Resources() {
           </>
         ) : (
           <p className="prose-muted">
-            Set <code>VITE_FHEPAY_ADDRESS</code> in <code>frontend/.env.local</code> after deploying the contract (the
-            deploy script can write this file for you).
+            Set <code>VITE_FHEPAY_ADDRESS</code> in <code>frontend/.env.local</code> after deployment.
           </p>
         )}
       </motion.section>
@@ -71,39 +69,40 @@ export function Resources() {
       <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...iv}>
         <h2 className="section-title">Quick start checklist</h2>
         <ol className="prose-muted" style={{ paddingLeft: '1.25rem', lineHeight: 1.85, margin: 0 }}>
-          <li>Install a browser wallet and add the <strong style={{ color: 'var(--fg)' }}>Ethereum Sepolia</strong> network.</li>
-          <li>Get test ETH from a Sepolia faucet so you can sign transactions.</li>
-          <li>Open <Link to="/app">App</Link>, connect, and confirm the network badge shows Sepolia.</li>
-          <li>Wait until <strong style={{ color: 'var(--fg)' }}>CoFHE: ready</strong> appears (encryption needs a live session).</li>
-          <li>
-            As <strong style={{ color: 'var(--fg)' }}>employer</strong> (deployer wallet): set salary for a second wallet
-            address, then pay. As <strong style={{ color: 'var(--fg)' }}>employee</strong>: connect that second wallet and
-            decrypt.
-          </li>
+          <li>Use two Sepolia wallets: one employer wallet and one employee wallet.</li>
+          <li>Fund the employer with enough Sepolia ETH for gas and treasury deposits.</li>
+          <li>Open <Link to="/app">App</Link>, connect, and wait for CoFHE to become ready.</li>
+          <li>Fund the treasury, set salary, and run payroll.</li>
+          <li>Switch to the employee wallet, decrypt the balance, and claim ETH to the wallet.</li>
         </ol>
       </motion.section>
 
       <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...iv}>
-        <h2 className="section-title">Documentation</h2>
+        <h2 className="section-title">Key documentation</h2>
         <ul style={{ lineHeight: 2, color: 'rgba(255,255,255,0.78)', paddingLeft: '1.2rem', margin: 0 }}>
           <li>
             <a href="https://cofhe-docs.fhenix.zone/" target="_blank" rel="noreferrer">
-              Fhenix CoFHE documentation (overview)
+              Fhenix CoFHE documentation
             </a>
           </li>
           <li>
-            <a href="https://cofhe-docs.fhenix.zone/client-sdk/quick-start/hardhat" target="_blank" rel="noreferrer">
-              Hardhat + CoFHE quick start
+            <a href="https://cofhe-docs.fhenix.zone/client-sdk/guides/permits" target="_blank" rel="noreferrer">
+              Permits guide
             </a>
           </li>
           <li>
-            <a href="https://cofhe-docs.fhenix.zone/client-sdk/guides/client-setup" target="_blank" rel="noreferrer">
-              Client setup (viem / wagmi)
+            <a href="https://cofhe-docs.fhenix.zone/client-sdk/guides/decrypt-to-tx" target="_blank" rel="noreferrer">
+              decryptForTx guide
+            </a>
+          </li>
+          <li>
+            <a href="https://cofhe-docs.fhenix.zone/client-sdk/guides/writing-decrypt-result" target="_blank" rel="noreferrer">
+              Writing decrypt results on-chain
             </a>
           </li>
           <li>
             <a href="https://cofhe-docs.fhenix.zone/fhe-library/core-concepts/access-control" target="_blank" rel="noreferrer">
-              FHE access control (allow / allowThis)
+              FHE access control
             </a>
           </li>
         </ul>
@@ -112,17 +111,17 @@ export function Resources() {
       <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...iv}>
         <h2 className="section-title">Glossary</h2>
         <dl style={{ margin: 0 }}>
-          <dt style={{ fontWeight: 600, marginTop: '0.85rem', color: 'var(--accent)' }}>Ciphertext handle</dt>
+          <dt style={{ fontWeight: 600, marginTop: '0.85rem', color: 'var(--accent)' }}>euint128</dt>
           <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
-            An on-chain reference to an encrypted value. Observers see a handle, not the number inside.
-          </dd>
-          <dt style={{ fontWeight: 600, marginTop: '0.85rem', color: 'var(--accent)' }}>euint32</dt>
-          <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
-            Encrypted 32-bit integer type in the contract. Pick one real-world unit (e.g. whole USD) and stay within range.
+            Encrypted 128-bit integer used for salaries, balances, and pending withdrawals in wei-denominated ETH.
           </dd>
           <dt style={{ fontWeight: 600, marginTop: '0.85rem', color: 'var(--accent)' }}>Permit</dt>
           <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
-            Off-chain authorization that lets the CoFHE client decrypt handles you are allowed to see.
+            An off-chain authorization used when decrypting employee-specific data with <code>decryptForView</code>.
+          </dd>
+          <dt style={{ fontWeight: 600, marginTop: '0.85rem', color: 'var(--accent)' }}>decryptForTx</dt>
+          <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
+            A client-side decryption flow that returns both the plaintext and a proof signature for an on-chain action.
           </dd>
         </dl>
       </motion.section>
@@ -130,36 +129,32 @@ export function Resources() {
       <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...iv}>
         <h2 className="section-title">FAQ</h2>
         <dl style={{ margin: 0 }}>
-          <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>Why do I need Sepolia ETH?</dt>
+          <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>Why is treasury funding public?</dt>
           <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
-            Encrypted transactions are still transactions: gas is paid in ETH on the testnet. Use a faucet; amounts are
-            free test tokens.
+            Treasury ETH and final wallet claims are public blockchain actions. The private part is the salary and
+            intermediate payroll balance arithmetic.
           </dd>
-          <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>Which wallet is the employer?</dt>
+          <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>Why is withdrawal a two-step flow?</dt>
           <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
-            The address that deployed the contract is the <code>owner</code> and sees employer tools. Use a different
-            address to experience the employee flow.
+            The contract first updates the encrypted balance, then the client obtains a verifiable decrypt proof and
+            claims ETH. That mirrors the documented Fhenix settlement model.
           </dd>
-          <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>Decrypt shows an error</dt>
+          <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>What happens if I over-request?</dt>
           <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
-            Stay on Sepolia, wait for CoFHE ready, and ensure you have interacted as that employee (salary set, pay, or
-            withdraw) so ACL allows your wallet on the handle.
+            The contract keeps the confidential balance unchanged and the claim resolves to zero, which the app clears
+            cleanly.
           </dd>
-          <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>What does “batch pay” do?</dt>
+          <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>What does batch payroll do now?</dt>
           <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
-            It sends one <code>paySalary</code> per address in order. Confirm each transaction in your wallet; useful for
-            demos with a short list of employees.
-          </dd>
-          <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>Is my salary visible on Etherscan?</dt>
-          <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
-            Not as plaintext. You may see contract calls and events with addresses; amounts remain encrypted on-chain.
+            It calls <code>batchPaySalary</code> once on-chain for the full employee list, reducing wallet-confirmation
+            friction.
           </dd>
         </dl>
       </motion.section>
 
       <motion.section className="card" style={{ marginBottom: '1.25rem' }} {...iv}>
         <h2 className="section-title">Troubleshooting</h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.92rem', color: 'rgba(255,255,255,0.75)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.92rem', color: 'rgba(255,255,255,0.78)' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
               <th style={{ padding: '0.5rem 0.5rem 0.65rem 0' }}>Symptom</th>
@@ -168,20 +163,20 @@ export function Resources() {
           </thead>
           <tbody>
             <tr style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '0.65rem 0.5rem 0.65rem 0', verticalAlign: 'top' }}>Wrong network</td>
-              <td style={{ padding: '0.65rem 0 0.65rem 0.5rem' }}>Switch to Ethereum Sepolia in your wallet; use the in-app button if shown.</td>
+              <td style={{ padding: '0.65rem 0.5rem 0.65rem 0', verticalAlign: 'top' }}>CoFHE never becomes ready</td>
+              <td style={{ padding: '0.65rem 0 0.65rem 0.5rem' }}>Reconnect the wallet, refresh the page, and disable aggressive ad blockers if needed.</td>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '0.65rem 0.5rem 0.65rem 0', verticalAlign: 'top' }}>CoFHE stuck on “connecting”</td>
-              <td style={{ padding: '0.65rem 0 0.65rem 0.5rem' }}>Reconnect the wallet, refresh the page, or disable aggressive ad blockers for the iframe storage used by the SDK.</td>
+              <td style={{ padding: '0.65rem 0.5rem 0.65rem 0', verticalAlign: 'top' }}>Payroll tx reverts</td>
+              <td style={{ padding: '0.65rem 0 0.65rem 0.5rem' }}>Check that the owner wallet is connected and that the employee is outside the current pay interval lock.</td>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '0.65rem 0.5rem 0.65rem 0', verticalAlign: 'top' }}>Transaction reverts</td>
-              <td style={{ padding: '0.65rem 0 0.65rem 0.5rem' }}>Check Sepolia ETH balance, contract address in env, and that employer actions use the owner wallet.</td>
+              <td style={{ padding: '0.65rem 0.5rem 0.65rem 0', verticalAlign: 'top' }}>Claim fails with treasury error</td>
+              <td style={{ padding: '0.65rem 0 0.65rem 0.5rem' }}>Fund the employer treasury and use the employee's pending-claim button again.</td>
             </tr>
             <tr>
-              <td style={{ padding: '0.65rem 0.5rem 0.65rem 0', verticalAlign: 'top' }}>Balance decrypt is zero</td>
-              <td style={{ padding: '0.65rem 0 0.65rem 0.5rem' }}>Run pay salary after setting salary; decrypt again after state changes.</td>
+              <td style={{ padding: '0.65rem 0.5rem 0.65rem 0', verticalAlign: 'top' }}>Decrypt fails for the employee</td>
+              <td style={{ padding: '0.65rem 0 0.65rem 0.5rem' }}>Make sure payroll was actually run for that wallet and that you are decrypting from the correct address on Sepolia.</td>
             </tr>
           </tbody>
         </table>
@@ -190,11 +185,11 @@ export function Resources() {
       <motion.div className="cta-panel" {...iv} style={{ marginTop: '0.5rem' }}>
         <p style={{ margin: 0, fontSize: '1rem' }}>
           <Link to="/app" className="btn">
-            Back to app
+            Open dashboard
           </Link>
           <span style={{ display: 'inline-block', width: '0.75rem' }} />
           <Link to="/" className="btn btn-ghost">
-            Home
+            Back home
           </Link>
         </p>
       </motion.div>
