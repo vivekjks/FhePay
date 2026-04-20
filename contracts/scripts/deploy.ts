@@ -2,6 +2,17 @@ import hre from 'hardhat';
 import * as fs from 'fs';
 import * as path from 'path';
 
+function upsertEnvLine(filePath: string, key: string, value: string) {
+  const nextLine = `${key}=${value}`;
+  const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
+  const lines = current
+    .split(/\r?\n/)
+    .filter((line) => line.trim().length > 0);
+  const withoutKey = lines.filter((line) => !line.startsWith(`${key}=`));
+  withoutKey.push(nextLine);
+  fs.writeFileSync(filePath, `${withoutKey.join('\n')}\n`, 'utf8');
+}
+
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
   console.log('Deploying with:', deployer.address);
@@ -13,13 +24,12 @@ async function main() {
   const address = await fhePay.getAddress();
   console.log('FhePay deployed to:', address);
 
-  const envLine = `VITE_FHEPAY_ADDRESS=${address}\n`;
   const frontendEnv = path.join(__dirname, '..', '..', 'frontend', '.env.local');
   try {
-    fs.writeFileSync(frontendEnv, envLine, { flag: 'w' });
-    console.log('Wrote', frontendEnv);
+    upsertEnvLine(frontendEnv, 'VITE_FHEPAY_ADDRESS', address);
+    console.log('Updated', frontendEnv);
   } catch {
-    console.log('Could not write frontend/.env.local — set VITE_FHEPAY_ADDRESS manually.');
+    console.log('Could not write frontend/.env.local - set VITE_FHEPAY_ADDRESS manually.');
   }
 }
 
