@@ -1,43 +1,69 @@
-import { getFhePayAddress } from '../constants';
+import { useReadContract } from 'wagmi';
 import { sepolia } from 'viem/chains';
+import { fhePayAbi } from '../abi/fhepay';
+import { getFhePayAddress } from '../constants';
+import { formatDuration, formatEtherAmount } from '../utils/format';
 
 export function ContractStatus() {
-  const addr = getFhePayAddress();
-  if (!addr) return null;
+  const contractAddress = getFhePayAddress();
 
-  const contractAddress = addr;
-  const explorer = `https://sepolia.etherscan.io/address/${contractAddress}`;
+  const { data: treasuryBalance } = useReadContract({
+    address: contractAddress,
+    abi: fhePayAbi,
+    functionName: 'treasuryBalance',
+    query: { enabled: !!contractAddress },
+  });
+  const { data: payInterval } = useReadContract({
+    address: contractAddress,
+    abi: fhePayAbi,
+    functionName: 'payInterval',
+    query: { enabled: !!contractAddress },
+  });
+
+  if (!contractAddress) return null;
+  const safeAddress = contractAddress;
+
+  const explorer = `https://sepolia.etherscan.io/address/${safeAddress}`;
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(contractAddress);
+      await navigator.clipboard.writeText(safeAddress);
     } catch {
-      /* ignore */
+      // ignored
     }
   }
 
   return (
-    <div
-      className="card"
-      style={{
-        marginTop: '1rem',
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '0.75rem 1.25rem',
-        justifyContent: 'space-between',
-      }}
-    >
+    <div className="card contract-status">
       <div>
         <p className="label" style={{ marginBottom: '0.25rem' }}>
           Network
         </p>
         <span className="badge">{sepolia.name}</span>
-        <span style={{ marginLeft: '0.5rem', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+        <span style={{ marginLeft: '0.5rem', color: 'rgba(255,255,255,0.55)', fontSize: '0.85rem' }}>
           Chain {sepolia.id}
         </span>
       </div>
-      <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+
+      <div>
+        <p className="label" style={{ marginBottom: '0.25rem' }}>
+          Treasury
+        </p>
+        <strong style={{ fontSize: '1rem' }}>
+          {typeof treasuryBalance === 'bigint' ? formatEtherAmount(treasuryBalance) : 'Loading...'}
+        </strong>
+      </div>
+
+      <div>
+        <p className="label" style={{ marginBottom: '0.25rem' }}>
+          Pay interval
+        </p>
+        <strong style={{ fontSize: '1rem' }}>
+          {typeof payInterval === 'bigint' ? formatDuration(payInterval) : 'Loading...'}
+        </strong>
+      </div>
+
+      <div style={{ flex: '1 1 260px', minWidth: 0 }}>
         <p className="label" style={{ marginBottom: '0.25rem' }}>
           FhePay contract
         </p>
@@ -46,14 +72,14 @@ export function ContractStatus() {
             style={{
               fontSize: '0.8rem',
               wordBreak: 'break-all',
-              color: 'rgba(255,255,255,0.9)',
+              color: 'rgba(255,255,255,0.92)',
               background: 'rgba(255,255,255,0.06)',
               padding: '0.35rem 0.5rem',
               borderRadius: 8,
               border: '1px solid var(--border)',
             }}
           >
-            {contractAddress}
+            {safeAddress}
           </code>
           <button type="button" className="btn btn-ghost" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => void copy()}>
             Copy
