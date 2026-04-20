@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { Log } from 'viem';
 import { useWatchContractEvent } from 'wagmi';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
@@ -17,9 +16,9 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'SalarySet',
     enabled: !!contract,
-    onLogs(logs: Log[]) {
+    onLogs(logs: unknown[]) {
       logs.forEach((log) => {
-        const args = log.args as { employee?: `0x${string}` } | undefined;
+        const args = (log as { args?: { employee?: `0x${string}` } }).args;
         const employee = args?.employee;
         if (employee) push(`Salary set for ${employee}`);
       });
@@ -31,9 +30,9 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'SalaryPaid',
     enabled: !!contract,
-    onLogs(logs: Log[]) {
+    onLogs(logs: unknown[]) {
       logs.forEach((log) => {
-        const args = log.args as { employee?: `0x${string}` } | undefined;
+        const args = (log as { args?: { employee?: `0x${string}` } }).args;
         const employee = args?.employee;
         if (employee) push(`Payroll sent to ${employee}`);
       });
@@ -45,9 +44,9 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'BatchSalaryPaid',
     enabled: !!contract,
-    onLogs(logs: Log[]) {
+    onLogs(logs: unknown[]) {
       logs.forEach((log) => {
-        const args = log.args as { count?: bigint } | undefined;
+        const args = (log as { args?: { count?: bigint } }).args;
         push(`Batch payroll confirmed for ${(args?.count ?? 0n).toString()} employees`);
       });
     },
@@ -58,9 +57,9 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'TreasuryFunded',
     enabled: !!contract,
-    onLogs(logs: Log[]) {
+    onLogs(logs: unknown[]) {
       logs.forEach((log) => {
-        const args = log.args as { from?: `0x${string}`; amount?: bigint } | undefined;
+        const args = (log as { args?: { from?: `0x${string}`; amount?: bigint } }).args;
         push(`Treasury funded by ${args?.from ?? 'unknown wallet'}`);
       });
     },
@@ -71,9 +70,9 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'WithdrawalRequested',
     enabled: !!contract,
-    onLogs(logs: Log[]) {
+    onLogs(logs: unknown[]) {
       logs.forEach((log) => {
-        const args = log.args as { account?: `0x${string}`; amount?: bigint } | undefined;
+        const args = (log as { args?: { account?: `0x${string}`; amount?: bigint } }).args;
         const account = args?.account;
         if (account) push(`Withdrawal requested by ${account}`);
       });
@@ -85,9 +84,9 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'WithdrawalClaimed',
     enabled: !!contract,
-    onLogs(logs: Log[]) {
+    onLogs(logs: unknown[]) {
       logs.forEach((log) => {
-        const args = log.args as { account?: `0x${string}`; amount?: bigint } | undefined;
+        const args = (log as { args?: { account?: `0x${string}`; amount?: bigint } }).args;
         const account = args?.account;
         if (account) {
           push(`ETH claim settled for ${account}`);
