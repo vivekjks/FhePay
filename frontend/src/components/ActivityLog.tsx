@@ -3,11 +3,6 @@ import { useWatchContractEvent } from 'wagmi';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
 
-type EmployeeLog = { args?: { employee?: `0x${string}` } };
-type AccountLog = { args?: { account?: `0x${string}`; amount?: bigint } };
-type TreasuryLog = { args?: { from?: `0x${string}`; amount?: bigint } };
-type BatchLog = { args?: { count?: bigint } };
-
 export function ActivityLog() {
   const contract = getFhePayAddress();
   const [items, setItems] = useState<string[]>([]);
@@ -21,9 +16,10 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'SalarySet',
     enabled: !!contract,
-    onLogs(logs: EmployeeLog[]) {
+    onLogs(logs) {
       logs.forEach((log) => {
-        if (log.args?.employee) push(`Salary set for ${log.args.employee}`);
+        const employee = log.args.employee;
+        if (employee) push(`Salary set for ${employee}`);
       });
     },
   });
@@ -33,9 +29,10 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'SalaryPaid',
     enabled: !!contract,
-    onLogs(logs: EmployeeLog[]) {
+    onLogs(logs) {
       logs.forEach((log) => {
-        if (log.args?.employee) push(`Payroll sent to ${log.args.employee}`);
+        const employee = log.args.employee;
+        if (employee) push(`Payroll sent to ${employee}`);
       });
     },
   });
@@ -45,9 +42,9 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'BatchSalaryPaid',
     enabled: !!contract,
-    onLogs(logs: BatchLog[]) {
+    onLogs(logs) {
       logs.forEach((log) => {
-        push(`Batch payroll confirmed for ${(log.args?.count ?? 0n).toString()} employees`);
+        push(`Batch payroll confirmed for ${(log.args.count ?? 0n).toString()} employees`);
       });
     },
   });
@@ -57,9 +54,9 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'TreasuryFunded',
     enabled: !!contract,
-    onLogs(logs: TreasuryLog[]) {
+    onLogs(logs) {
       logs.forEach((log) => {
-        push(`Treasury funded by ${log.args?.from ?? 'unknown wallet'}`);
+        push(`Treasury funded by ${log.args.from ?? 'unknown wallet'}`);
       });
     },
   });
@@ -69,9 +66,10 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'WithdrawalRequested',
     enabled: !!contract,
-    onLogs(logs: AccountLog[]) {
+    onLogs(logs) {
       logs.forEach((log) => {
-        if (log.args?.account) push(`Withdrawal requested by ${log.args.account}`);
+        const account = log.args.account;
+        if (account) push(`Withdrawal requested by ${account}`);
       });
     },
   });
@@ -81,10 +79,11 @@ export function ActivityLog() {
     abi: fhePayAbi,
     eventName: 'WithdrawalClaimed',
     enabled: !!contract,
-    onLogs(logs: AccountLog[]) {
+    onLogs(logs) {
       logs.forEach((log) => {
-        if (log.args?.account) {
-          push(`ETH claim settled for ${log.args.account}`);
+        const account = log.args.account;
+        if (account) {
+          push(`ETH claim settled for ${account}`);
         }
       });
     },

@@ -1,8 +1,7 @@
 declare module 'viem/chains' {
-  export const sepolia: {
-    id: number;
-    name: string;
-  };
+  import type { Chain } from 'viem';
+
+  export const sepolia: Chain;
 }
 
 declare module 'viem/utils' {
