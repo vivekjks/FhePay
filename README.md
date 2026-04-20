@@ -1,120 +1,137 @@
 # FhePay
 
-**FhePay** is a confidential payroll demo on **Ethereum Sepolia** built with **Fhenix CoFHE**: salaries and vault balances are stored as encrypted handles (`euint32`) on-chain; employers configure pay using client-side encryption; employees decrypt **their own** balances locally with the CoFHE client and permits.
+FhePay is a confidential payroll app on Ethereum Sepolia built with Fhenix CoFHE.
 
-Official CoFHE documentation: [https://cofhe-docs.fhenix.zone/](https://cofhe-docs.fhenix.zone/)
+It now supports:
+- Encrypted salaries and balances with `euint128`
+- Treasury-backed payroll settlement in ETH
+- Pay-interval protection to prevent accidental double-pay
+- Single-transaction batch payroll
+- Confidential withdrawal requests followed by proof-verified ETH claims
 
----
-https://fhepayhn.vercel.app
+Official CoFHE docs: [https://cofhe-docs.fhenix.zone/](https://cofhe-docs.fhenix.zone/)
 
+Live app: [https://fhepayhn.vercel.app](https://fhepayhn.vercel.app)
 
-## Table of contents
+## Live deployment
 
-- [What problem does this solve?](#what-problem-does-this-solve)
-- [Who is it for?](#who-is-it-for)
-- [Architecture](#architecture)
-- [User flows (end-to-end)](#user-flows-end-to-end)
-- [Site map (routes)](#site-map-routes)
-- [Repository layout](#repository-layout)
-- [Prerequisites](#prerequisites)
-- [Smart contracts](#smart-contracts)
-- [Frontend](#frontend)
-- [Environment variables](#environment-variables)
-- [Security model](#security-model-high-level)
-- [Limitations](#limitations)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
+- Contract: [0x7c66409c0EcBE7D4dFc76e3cA1BC406f2725DE0e](https://sepolia.etherscan.io/address/0x7c66409c0EcBE7D4dFc76e3cA1BC406f2725DE0e)
+- Owner: [0x573f08604704227A8b9A6551009Bd39C668Ff8F8](https://sepolia.etherscan.io/address/0x573f08604704227A8b9A6551009Bd39C668Ff8F8)
+- Frontend env: `frontend/.env.local` is set to this address
 
----
+## What we improved
 
-## What problem does this solve?
+This version was upgraded directly against the previous judge feedback.
 
-On public chains, token transfers and simple payroll contracts often reveal **amounts** to everyone. That is a poor fit for teams, DAOs, and companies where compensation should stay private while still benefiting from on-chain settlement and auditability.
+- Replaced `euint32` payroll amounts with `euint128`
+  This removes the previous scale constraint and makes ETH-denominated payroll much safer.
+- Added real on-chain settlement
+  Payroll is now funded by an ETH treasury, and employees can claim ETH into their wallet after a verified decryption flow.
+- Added pay-cycle protection
+  `paySalary` now respects a configurable `payInterval`, preventing accidental rapid double-pay.
+- Added true batch payroll
+  `batchPaySalary(address[])` processes multiple employees in one transaction instead of forcing one wallet confirmation per employee.
+- Added claim-based confidential withdrawals
+  The app now follows the documented Fhenix `decryptForTx` + `verifyDecryptResult` flow for settlement.
+- Fixed frontend CoFHE permit handling
+  Employee decrypts now explicitly create/use a self permit for `decryptForView`.
+- Fixed frontend build and input-validation issues
+  The app builds cleanly and handles numeric input more safely.
+- Improved UI/UX
+  Employer controls, employee claim flow, status surfaces, and supporting pages were refreshed without throwing away the existing design language.
 
-FhePay shows how **fully homomorphic encryption (FHE)** can keep amounts confidential: the contract performs homomorphic add / compare on ciphertexts; observers see transactions and addresses involved in events, but **not** plaintext salaries or balances.
+## Product overview
 
-## Who is it for?
+Transparent blockchains are excellent for settlement but terrible for salary privacy.
 
-- **Hackathons & demos** — Judges can follow txs on Etherscan without seeing salary numbers.
-- **Product teams** — A reference for how CoFHE, wagmi, and Solidity FHE fit together.
-- **DAOs & remote orgs** — A conversation starter for “on-chain payroll without public amounts.”
+FhePay keeps the payroll arithmetic confidential:
+- Salaries are encrypted in the browser
+- The contract stores encrypted handles, not plaintext salaries
+- Payroll accrues in encrypted balances
+- Employees decrypt only their own values locally
+- Final ETH claims are verified on-chain with threshold-network proofs
 
----
+This gives a practical privacy boundary:
+- Private: salary amounts, accrued confidential balances, withdrawal requests
+- Public: treasury funding, wallet addresses, final ETH claim settlement
 
 ## Architecture
 
-| Layer | Role |
-|--------|------|
-| **React (Vite)** | Wallet connection (wagmi + injected), UI, motion, routing (see [Site map](#site-map-routes)) |
-| **@cofhe/sdk** | `encryptInputs`, permits, `decryptForView` for ciphertext handles |
-| **FhePay.sol** | `euint32` salary + balance per employee; `FHE.add`, `FHE.gte`, `FHE.select` for pay/withdraw; ACL via `FHE.allowThis` / `FHE.allow` / `FHE.allowSender` |
-| **Sepolia** | Chain id `11155111` — CoFHE-supported testnet |
+### Smart contract
 
-```text
-Browser (encrypt) → Transaction (handles + proofs) → Contract (FHE ops) → Events (addresses only)
-                                                          ↓
-                                              Employee decrypts locally (permit)
-```
+[`contracts/contracts/FhePay.sol`](contracts/contracts/FhePay.sol)
 
----
+Main capabilities:
+- `setSalary(address, InEuint128)`
+- `paySalary(address)`
+- `batchPaySalary(address[])`
+- `setPayInterval(uint64)`
+- `fundTreasury() payable`
+- `requestWithdraw(InEuint128)`
+- `claimWithdrawal(uint128, bytes)`
 
-## User flows (end-to-end)
+Confidential state:
+- salary per employee
+- balance per employee
+- pending withdrawal amount per employee
 
-### Employer (contract `owner`)
+Public operational state:
+- treasury balance
+- payroll interval
+- last paid timestamp per employee
 
-1. Connect the **deployer** wallet on **Sepolia**.
-2. Wait until the UI shows **CoFHE: ready** (SDK connected to viem clients).
-3. Enter **employee address** + **salary** (plain unit, e.g. whole USD) → **Encrypt & set salary**.
-4. **Pay one period** or use **batch pay** (one `paySalary` tx per address; confirm each in the wallet).
-5. Optional: use **Employee** panel with the same wallet if you added yourself as an employee.
+### Frontend
 
-### Employee (any non-owner address)
+[`frontend/`](frontend/)
 
-1. Connect the **employee** wallet on Sepolia.
-2. After the employer has set salary and paid at least once, use **Decrypt balance** / **Decrypt salary**.
-3. **Withdraw** by entering an amount; the contract checks balance in ciphertext (no plaintext revert leak).
+Main app flows:
+- Employer funds treasury in ETH
+- Employer sets confidential salary in ETH terms
+- Employer runs payroll for one employee or a whole batch
+- Employee decrypts salary/balance locally
+- Employee requests a confidential withdrawal
+- App performs proof-backed claim settlement into the wallet
 
-### What you see on Etherscan
+### CoFHE usage
 
-- Contract calls and **events** with **addresses** (e.g. `SalarySet`, `SalaryPaid`, `Withdrawn`).
-- **Not** plaintext dollar amounts — those stay inside encrypted types + off-chain decrypt.
+The app uses:
+- `encryptInputs(...)` for salary and withdrawal requests
+- `decryptForView(...).withPermit()` for private employee reads
+- `decryptForTx(...).withoutPermit()` for claim settlement
+- `FHE.allowThis`, `FHE.allow`, and `FHE.allowPublic` in the contract
 
----
+Relevant docs:
+- [Permits](https://cofhe-docs.fhenix.zone/client-sdk/guides/permits)
+- [Decrypt to transact](https://cofhe-docs.fhenix.zone/client-sdk/guides/decrypt-to-tx)
+- [Writing decrypt results to contract](https://cofhe-docs.fhenix.zone/client-sdk/guides/writing-decrypt-result)
+- [Access control](https://cofhe-docs.fhenix.zone/fhe-library/core-concepts/access-control)
 
-## Site map (routes)
+## User flows
 
-| Path | Purpose |
-|------|---------|
-| `/` | Marketing home — hero, features, links |
-| `/app` | Dashboard — connect wallet, employer / employee panels, activity |
-| `/how-it-works` | Deep dive — data flow and FHE model |
-| `/status` | Diagnostics — contract env, chain, block, CoFHE readiness |
-| `/resources` | External docs and FAQ-style links |
-| `*` | 404 — unknown routes |
+### Employer
 
-CoFHE sync runs app-wide so **Status** reflects the same SDK session as **App** after you connect.
+1. Connect the owner wallet on Sepolia.
+2. Fund the treasury with ETH.
+3. Set the payroll interval.
+4. Add an employee address and encrypt the salary.
+5. Run payroll for one employee or use batch payroll.
 
----
+### Employee
+
+1. Connect the employee wallet on Sepolia.
+2. Decrypt salary and balance locally.
+3. Request a confidential withdrawal amount.
+4. Claim ETH to the wallet with a verified proof.
 
 ## Repository layout
 
-| Path | Contents |
-|------|-----------|
-| [`contracts/`](contracts/) | Hardhat, `FhePay.sol`, tests, `scripts/deploy.ts`, CoFHE plugin |
-| [`frontend/`](frontend/) | Vite + React + wagmi + `@cofhe/sdk/web` |
-| [`proejct.md`](proejct.md) | Original product spec |
+- `contracts/` Hardhat project, CoFHE contract, tests, deployment script
+- `frontend/` Vite + React + wagmi + `@cofhe/sdk`
+- `README.md` project overview and deployment notes
 
----
+## Local development
 
-## Prerequisites
-
-- **Node.js 18+**
-- **Sepolia ETH** for gas ([faucet links vary](https://cloud.google.com/application/web3/faucet/ethereum/sepolia) — search “Sepolia faucet”).
-- A browser wallet (e.g. MetaMask) on **Ethereum Sepolia**
-
----
-
-## Smart contracts
+### Contracts
 
 ```bash
 cd contracts
@@ -123,111 +140,73 @@ npm run build
 npm test
 ```
 
-### Deploy to Sepolia
+### Frontend
 
-1. Copy `contracts/.env.example` to `contracts/.env` and set:
+```bash
+cd frontend
+npm install
+npm run build
+npm run dev
+```
 
-   - **`PRIVATE_KEY`** or **`DEPLOYER_PRIVATE_KEY`** — funded Sepolia account (never commit)
-   - **`SEPOLIA_RPC_URL`** — optional; defaults to a public RPC
+## Deploying to Sepolia
 
-2. Run:
+From the repo root:
 
 ```bash
 cd contracts
 npm run deploy:sepolia
 ```
 
-The script prints the contract address and writes `frontend/.env.local` with `VITE_FHEPAY_ADDRESS=...` when possible.
+Expected env vars:
+- `PRIVATE_KEY` or `DEPLOYER_PRIVATE_KEY`
+- `SEPOLIA_RPC_URL` (optional but recommended)
 
-### Latest Sepolia deployment (this repo)
-
-| | |
-|---|---|
-| **Contract** | [`0xa446455cc0291FCBdF2259898CC640abDF6443A0`](https://sepolia.etherscan.io/address/0xa446455cc0291FCBdF2259898CC640abDF6443A0) |
-| **Owner (deployer)** | [`0x573f08604704227A8b9A6551009Bd39C668Ff8F8`](https://sepolia.etherscan.io/address/0x573f08604704227A8b9A6551009Bd39C668Ff8F8) |
-
-`frontend/.env.local` should include `VITE_FHEPAY_ADDRESS` for this deployment. Re-deploying changes the address — update env accordingly.
-
-**Security:** Never commit private keys. Never share them in chat or tickets. If a key was exposed, move funds to a new wallet and rotate RPC/API keys.
-
----
-
-## Frontend
+The deploy script updates `frontend/.env.local` by upserting:
 
 ```bash
-cd frontend
-npm install
-cp .env.example .env.local
-# set VITE_FHEPAY_ADDRESS (and optionally VITE_SEPOLIA_RPC_URL)
-npm run dev
+VITE_FHEPAY_ADDRESS=0x...
 ```
 
-Production build:
+## Verification performed
 
-```bash
-cd frontend
-npm run build
-npm run preview   # serves dist/
-```
+Local verification completed:
+- `contracts`: build passed
+- `contracts`: tests passed
+- `frontend`: build passed
+- `frontend`: preview responded with HTTP `200`
 
-### UI overview
+Live Sepolia smoke test completed against the deployed contract:
+- funded treasury
+- updated pay interval
+- set salary
+- ran payroll
+- decrypted salary and balance
+- requested withdrawal
+- decrypted pending settlement amount with `decryptForTx`
+- claimed ETH on-chain
+- confirmed the post-claim encrypted balance changed correctly
 
-| Area | Notes |
-|------|--------|
-| **Theme** | `#000` background, white text, `#ffb6c1` accents — [`frontend/src/theme.css`](frontend/src/theme.css) |
-| **Pages** | **Home** — marketing + steps + feature grid; **App** — payroll console; **Resources** — FAQ, glossary, troubleshooting |
-| **Motion** | Framer Motion on hero, sections, footer; **reduced motion** respected globally |
-| **CoFHE build** | Vite `worker` config for `zkProve.worker`; see [`frontend/vite.config.ts`](frontend/vite.config.ts) |
+## Known limitations
 
----
+This version is much closer to a real product, but a few production-hardening steps still remain:
+- Treasury solvency is operational, not cryptographically enforced against encrypted liabilities
+- Claims settle in public ETH, so the final payout amount becomes public at withdrawal time
+- The frontend bundle is still large because of CoFHE worker/WASM payloads
+- Additional org features like auditor permit sharing, multisig ownership, and recurring payroll automation would make the system stronger
 
-## Environment variables
+## Next useful upgrades
 
-### `contracts/.env` (deploy only, gitignored)
+- Auditor / compliance selective disclosure flow
+- Multisig owner / treasury controls
+- Payroll groups or departments
+- Recurring payroll automation
+- CSV employee import
+- Confidential bonus and one-time grant flows
+- Better analytics around treasury runway and upcoming payroll load
 
-| Variable | Description |
-|----------|-------------|
-| `PRIVATE_KEY` or `DEPLOYER_PRIVATE_KEY` | `0x`‑prefixed private key with Sepolia ETH |
-| `SEPOLIA_RPC_URL` | Optional HTTPS RPC (Alchemy, Infura, etc.) |
+## Security note
 
-### `frontend/.env.local` (gitignored)
+Never commit private keys.
 
-| Variable | Description |
-|----------|-------------|
-| `VITE_FHEPAY_ADDRESS` | Deployed `FhePay` contract address |
-| `VITE_SEPOLIA_RPC_URL` | Optional; wagmi uses it for Sepolia RPC |
-
----
-
-## Security model (high level)
-
-- **Plaintext** salaries and amounts are encrypted **in the browser** before sending to the contract.
-- The **contract** never sees raw salaries as plaintext; it operates on encrypted types and updates ACL for ciphertext handles.
-- **Decryption** for viewing balances is done **off-chain** with the CoFHE client and valid permits; employees only see their own row when the contract has `FHE.allow`’d their address on the relevant handle.
-- This is a **testnet demo**: review gas, key management, and upgrade policy before any production use.
-
----
-
-## Limitations
-
-- Amounts use **`euint32`** — pick a single unit (e.g. whole USD) and stay within `0 … 2^32-1` in that unit.
-- **Withdraw** uses encrypted `gte` + `select`; if “withdraw” is larger than balance, the balance is unchanged (no plaintext revert leak).
-- **Auditor** selective disclosure is described in the UI as future work; the current contract scopes decryption to employees for their ciphertexts.
-
----
-
-## Troubleshooting
-
-| Issue | What to try |
-|--------|-------------|
-| Wrong network | Switch wallet to **Ethereum Sepolia** (chain id `11155111`). |
-| CoFHE “connecting” forever | Refresh, reconnect wallet, check RPC; ad blockers can interfere with SDK storage iframes. |
-| Tx reverts | Confirm Sepolia ETH, correct `VITE_FHEPAY_ADDRESS`, and employer using **owner** wallet. |
-| Decrypt fails | Ensure CoFHE ready, and contract has updated ACL for your address after `setSalary` / `paySalary` / `withdraw`. |
-| Build fails on CoFHE worker | See [`frontend/vite.config.ts`](frontend/vite.config.ts) `worker` block — ES format for Rollup. |
-
----
-
-## License
-
-MIT (match the Solidity `UNLICENSED` header in contracts if you need a formal license for your deployment).
+If a private key was shared in chat or in an issue, rotate it after use.
