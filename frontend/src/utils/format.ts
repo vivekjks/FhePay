@@ -1,4 +1,5 @@
 const TEN = 10n;
+export const UINT128_MAX = (1n << 128n) - 1n;
 
 export function parseDecimalToUnits(value: string, decimals: number): bigint | null {
   const trimmed = value.trim();
@@ -14,6 +15,21 @@ export function parseDecimalToUnits(value: string, decimals: number): bigint | n
   } catch {
     return null;
   }
+}
+
+export function parseWholeNumber(value: string): bigint | null {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+
+  try {
+    return BigInt(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+export function isUint128(value: bigint): boolean {
+  return value >= 0n && value <= UINT128_MAX;
 }
 
 export function formatUnits(value: bigint, decimals: number, maxFractionDigits = 6): string {

@@ -7,7 +7,9 @@ It now supports:
 - Treasury-backed payroll settlement in ETH
 - Pay-interval protection to prevent accidental double-pay
 - Single-transaction batch payroll
+- On-chain employee roster and active/inactive payroll controls
 - Confidential withdrawal requests followed by proof-verified ETH claims
+- Pending-withdrawal cancellation that restores the encrypted pending amount
 
 Official CoFHE docs: [https://cofhe-docs.fhenix.zone/](https://cofhe-docs.fhenix.zone/)
 
@@ -15,9 +17,10 @@ Live app: [https://fhepaye.vercel.app](https://fhepaye.vercel.app)
 
 ## Live deployment
 
-- Contract: [0x7c66409c0EcBE7D4dFc76e3cA1BC406f2725DE0e](https://sepolia.etherscan.io/address/0x7c66409c0EcBE7D4dFc76e3cA1BC406f2725DE0e)
+- Contract: [0x7C6ECBDdF86667B802BEC29d69da72184eEbd9E8](https://sepolia.etherscan.io/address/0x7C6ECBDdF86667B802BEC29d69da72184eEbd9E8)
 - Owner: [0x573f08604704227A8b9A6551009Bd39C668Ff8F8](https://sepolia.etherscan.io/address/0x573f08604704227A8b9A6551009Bd39C668Ff8F8)
 - Frontend env: `frontend/.env.local` is set to this address
+- Deployed package line: `@cofhe/sdk@^0.5.2`, `@cofhe/hardhat-plugin@^0.5.2`, `@fhenixprotocol/cofhe-contracts@^0.1.3`
 
 ## What we improved
 
@@ -31,14 +34,18 @@ This version was upgraded directly against the previous judge feedback.
   `paySalary` now respects a configurable `payInterval`, preventing accidental rapid double-pay.
 - Added true batch payroll
   `batchPaySalary(address[])` processes multiple employees in one transaction instead of forcing one wallet confirmation per employee.
+- Added Wave 4 roster controls
+  `setSalary` now registers employees on-chain, `setEmployeeActive` pauses/reactivates future payroll, and `MAX_BATCH_SIZE` caps oversized batches.
 - Added claim-based confidential withdrawals
   The app now follows the documented Fhenix `decryptForTx` + `verifyDecryptResult` flow for settlement.
+- Added pending-withdrawal recovery
+  Employees can call `cancelWithdrawal()` to return the encrypted pending amount to their confidential balance.
 - Fixed frontend CoFHE permit handling
   Employee decrypts now explicitly create/use a self permit for `decryptForView`.
 - Fixed frontend build and input-validation issues
   The app builds cleanly and handles numeric input more safely.
 - Improved UI/UX
-  Employer controls, employee claim flow, status surfaces, and supporting pages were refreshed without throwing away the existing design language.
+  The app now opens directly to the payroll console, with clearer wallet/network readiness, roster views, transaction links, and safer action states.
 
 ## Product overview
 
@@ -65,9 +72,11 @@ Main capabilities:
 - `setSalary(address, InEuint128)`
 - `paySalary(address)`
 - `batchPaySalary(address[])`
+- `setEmployeeActive(address, bool)`
 - `setPayInterval(uint64)`
 - `fundTreasury() payable`
 - `requestWithdraw(InEuint128)`
+- `cancelWithdrawal()`
 - `claimWithdrawal(uint128, bytes)`
 
 Confidential state:
@@ -76,8 +85,11 @@ Confidential state:
 - pending withdrawal amount per employee
 
 Public operational state:
+- employee directory
+- employee active/inactive status
 - treasury balance
 - payroll interval
+- maximum batch size
 - last paid timestamp per employee
 
 ### Frontend
@@ -87,9 +99,11 @@ Public operational state:
 Main app flows:
 - Employer funds treasury in ETH
 - Employer sets confidential salary in ETH terms
+- Employer manages the on-chain roster and active payroll status
 - Employer runs payroll for one employee or a whole batch
 - Employee decrypts salary/balance locally
 - Employee requests a confidential withdrawal
+- Employee cancels a pending withdrawal if settlement should be deferred
 - App performs proof-backed claim settlement into the wallet
 
 ### CoFHE usage
@@ -114,7 +128,8 @@ Relevant docs:
 2. Fund the treasury with ETH.
 3. Set the payroll interval.
 4. Add an employee address and encrypt the salary.
-5. Run payroll for one employee or use batch payroll.
+5. Pause/reactivate employees as needed.
+6. Run payroll for one employee or use batch payroll.
 
 ### Employee
 
@@ -122,6 +137,7 @@ Relevant docs:
 2. Decrypt salary and balance locally.
 3. Request a confidential withdrawal amount.
 4. Claim ETH to the wallet with a verified proof.
+5. Cancel a pending withdrawal if the claim should return to the encrypted balance.
 
 ## Repository layout
 
@@ -160,7 +176,7 @@ npm run deploy:sepolia
 
 Expected env vars:
 - `PRIVATE_KEY` or `DEPLOYER_PRIVATE_KEY`
-- `SEPOLIA_RPC_URL` (optional but recommended)
+- `SEPOLIA_RPC_URL` (recommended, for example `https://ethereum-sepolia-rpc.publicnode.com`)
 
 The deploy script updates `frontend/.env.local` by upserting:
 
@@ -175,11 +191,10 @@ Local verification completed:
 - `contracts`: tests passed
 - `frontend`: build passed
 - `frontend`: preview responded with HTTP `200`
-- production app: [https://fhepaye.vercel.app](https://fhepaye.vercel.app) responded with HTTP `200` on April 21, 2026
 
-Live Sepolia smoke test completed against the deployed contract:
+Live Sepolia smoke test completed against the deployed Wave 4 contract on May 12, 2026:
 - funded treasury
-- updated pay interval
+- updated pay interval to 60 seconds
 - set salary
 - ran payroll
 - decrypted salary and balance
@@ -188,15 +203,21 @@ Live Sepolia smoke test completed against the deployed contract:
 - claimed ETH on-chain
 - confirmed the post-claim encrypted balance changed correctly
 
+Smoke values:
+- salary: `0.001 ETH`
+- claimed: `0.0004 ETH`
+- post-claim confidential balance: `0.0006 ETH`
+- remaining treasury: `0.0016 ETH`
+
 ## Known limitations
 
 This version is much closer to a real product, but a few production-hardening steps still remain:
 - Treasury solvency is operational, not cryptographically enforced against encrypted liabilities
 - Claims settle in public ETH, so the final payout amount becomes public at withdrawal time
 - The frontend bundle is still large because of CoFHE worker/WASM payloads
-- Additional org features like auditor permit sharing, multisig ownership, and recurring payroll automation would make the system stronger
+- The current owner is a single wallet; multisig ownership is the right production next step
 
-## Next useful upgrades
+## Wave 5 backlog
 
 - Auditor / compliance selective disclosure flow
 - Multisig owner / treasury controls

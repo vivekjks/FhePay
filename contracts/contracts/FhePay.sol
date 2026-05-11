@@ -8,20 +8,28 @@ import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol
 /// @title FhePay - confidential payroll with claimable on-chain ETH settlement
 /// @notice Salaries, balances, and pending withdrawals are stored as encrypted handles (euint128).
 contract FhePay is Ownable, ReentrancyGuard {
+    uint256 public constant MAX_BATCH_SIZE = 50;
+
     mapping(address => euint128) private _salaries;
     mapping(address => euint128) private _balances;
     mapping(address => euint128) private _pendingWithdrawals;
     mapping(address => bool) private _hasSalary;
     mapping(address => bool) private _balanceInitialized;
     mapping(address => bool) private _hasPendingWithdrawal;
+    mapping(address => bool) private _isEmployee;
+    mapping(address => bool) private _activeEmployees;
+    address[] private _employees;
     mapping(address => uint64) public lastPaidAt;
 
     uint64 public payInterval = 30 days;
 
+    event EmployeeRegistered(address indexed employee);
+    event EmployeeStatusUpdated(address indexed employee, bool active);
     event SalarySet(address indexed employee);
     event SalaryPaid(address indexed employee, uint64 paidAt);
     event BatchSalaryPaid(uint256 count, uint64 paidAt);
     event WithdrawalRequested(address indexed account);
+    event WithdrawalCanceled(address indexed account);
     event WithdrawalClaimed(address indexed account, uint128 amount);
     event TreasuryFunded(address indexed from, uint256 amount);
     event PayIntervalUpdated(uint64 newInterval);
@@ -52,6 +60,19 @@ contract FhePay is Ownable, ReentrancyGuard {
         FHE.allow(handle, employee);
     }
 
+    function _registerEmployee(address employee) internal {
+        if (!_isEmployee[employee]) {
+            _isEmployee[employee] = true;
+            _employees.push(employee);
+            emit EmployeeRegistered(employee);
+        }
+
+        if (!_activeEmployees[employee]) {
+            _activeEmployees[employee] = true;
+            emit EmployeeStatusUpdated(employee, true);
+        }
+    }
+
     function _ensureBalanceInitialized(address employee) internal {
         if (!_balanceInitialized[employee]) {
             euint128 zero = _zero();
@@ -63,6 +84,7 @@ contract FhePay is Ownable, ReentrancyGuard {
 
     function _ensureCanPay(address employee) internal view {
         require(_hasSalary[employee], 'FhePay: salary not set');
+        require(_activeEmployees[employee], 'FhePay: employee inactive');
         uint64 lastPaid = lastPaidAt[employee];
         if (lastPaid != 0) {
             require(block.timestamp >= uint256(lastPaid) + payInterval, 'FhePay: period locked');
@@ -84,6 +106,7 @@ contract FhePay is Ownable, ReentrancyGuard {
     function setSalary(address employee, InEuint128 calldata inSalary) external onlyOwner {
         require(employee != address(0), 'FhePay: zero employee');
 
+        _registerEmployee(employee);
         _ensureBalanceInitialized(employee);
         euint128 encSal = FHE.asEuint128(inSalary);
         _salaries[employee] = encSal;
@@ -103,6 +126,7 @@ contract FhePay is Ownable, ReentrancyGuard {
     /// @notice Pay a full payroll batch in a single transaction.
     function batchPaySalary(address[] calldata employees) external onlyOwner {
         require(employees.length > 0, 'FhePay: empty batch');
+        require(employees.length <= MAX_BATCH_SIZE, 'FhePay: batch too large');
         uint64 paidAt = uint64(block.timestamp);
         for (uint256 i = 0; i < employees.length; ++i) {
             _payEmployee(employees[i], paidAt);
@@ -132,6 +156,22 @@ contract FhePay is Ownable, ReentrancyGuard {
         FHE.allowPublic(_pendingWithdrawals[msg.sender]);
 
         emit WithdrawalRequested(msg.sender);
+    }
+
+    /// @notice Cancel a pending withdrawal and return the encrypted pending amount to the employee balance.
+    function cancelWithdrawal() external {
+        require(_hasPendingWithdrawal[msg.sender], 'FhePay: no pending claim');
+
+        _ensureBalanceInitialized(msg.sender);
+        euint128 restoredBalance = FHE.add(_balances[msg.sender], _pendingWithdrawals[msg.sender]);
+        _balances[msg.sender] = restoredBalance;
+        _grantEmployeeAccess(_balances[msg.sender], msg.sender);
+
+        _pendingWithdrawals[msg.sender] = _zero();
+        _hasPendingWithdrawal[msg.sender] = false;
+        _grantEmployeeAccess(_pendingWithdrawals[msg.sender], msg.sender);
+
+        emit WithdrawalCanceled(msg.sender);
     }
 
     /// @notice Finalize a requested withdrawal by verifying the threshold-network signature and sending ETH.
@@ -176,6 +216,29 @@ contract FhePay is Ownable, ReentrancyGuard {
 
     function hasPendingWithdrawal(address employee) external view returns (bool) {
         return _hasPendingWithdrawal[employee];
+    }
+
+    function employeeCount() external view returns (uint256) {
+        return _employees.length;
+    }
+
+    function employeeAt(uint256 index) external view returns (address) {
+        return _employees[index];
+    }
+
+    function isEmployee(address employee) external view returns (bool) {
+        return _isEmployee[employee];
+    }
+
+    function isActiveEmployee(address employee) external view returns (bool) {
+        return _activeEmployees[employee];
+    }
+
+    function setEmployeeActive(address employee, bool active) external onlyOwner {
+        require(_isEmployee[employee], 'FhePay: unknown employee');
+        require(_activeEmployees[employee] != active, 'FhePay: status unchanged');
+        _activeEmployees[employee] = active;
+        emit EmployeeStatusUpdated(employee, active);
     }
 
     function nextPayAt(address employee) external view returns (uint64) {

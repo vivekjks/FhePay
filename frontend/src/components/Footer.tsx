@@ -25,7 +25,7 @@ export function Footer() {
         borderTop: '1px solid var(--border)',
         padding: '2rem 1rem',
         marginTop: 'auto',
-        background: 'linear-gradient(180deg, transparent, rgba(255,182,193,0.05))',
+        background: 'linear-gradient(180deg, transparent, rgba(110,231,183,0.05))',
       }}
     >
       <motion.div
@@ -61,8 +61,8 @@ export function Footer() {
         </p>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <span className="badge">Sepolia</span>
-          <Link to="/">Home</Link>
-          <Link to="/app">App</Link>
+          <Link to="/">App</Link>
+          <Link to="/overview">Overview</Link>
           <Link to="/how-it-works">How it works</Link>
           <Link to="/status">Status</Link>
           <Link to="/resources">Resources</Link>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Banknote, CircleCheck, Eye, LockKeyhole, RefreshCw, RotateCcw, Send } from 'lucide-react';
 import { Encryptable, assertCorrectEncryptedItemInput, FheTypes } from '@cofhe/sdk';
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
@@ -9,7 +10,7 @@ import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
 import { useCofheReady } from '../hooks/useCofheReady';
 import { wagmiConfig } from '../wagmi';
-import { formatEtherAmount, parseDecimalToUnits } from '../utils/format';
+import { formatEtherAmount, isUint128, parseDecimalToUnits } from '../utils/format';
 
 type Hash = `0x${string}`;
 
@@ -30,6 +31,13 @@ export function EmployeePanel() {
     address: contract,
     abi: fhePayAbi,
     functionName: 'hasPendingWithdrawal',
+    args: address ? [address] : undefined,
+    query: { enabled: !!contract && !!address },
+  });
+  const { data: hasSalary, refetch: refetchHasSalary } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'hasSalary',
     args: address ? [address] : undefined,
     query: { enabled: !!contract && !!address },
   });
@@ -81,6 +89,10 @@ export function EmployeePanel() {
       setMsg('Connect your wallet on Sepolia and wait for CoFHE to become ready.');
       return;
     }
+    if (hasSalary === false) {
+      setMsg('No salary is registered for this wallet yet.');
+      return;
+    }
 
     setBusy('salary');
     try {
@@ -103,6 +115,10 @@ export function EmployeePanel() {
 
   async function claimPendingWithdrawal(options?: { silentIfMissing?: boolean }) {
     if (!contract || !address || !publicClient) return;
+    if (!cofheReady) {
+      setMsg('CoFHE is still connecting. Try the claim again in a moment.');
+      return;
+    }
 
     const pending = await refetchHasPending();
     if (!pending.data) {
@@ -138,7 +154,7 @@ export function EmployeePanel() {
         args: [clearAmount, decryptResult.signature],
       });
       await waitForHash(hash);
-      await Promise.all([refetchHasPending(), refetchTreasury()]);
+      await Promise.all([refetchHasPending(), refetchTreasury(), refetchHasSalary()]);
 
       if (clearAmount === 0n) {
         setMsg('The requested amount exceeded your confidential balance, so the zero-value claim was cleared.');
@@ -153,6 +169,35 @@ export function EmployeePanel() {
     }
   }
 
+  async function cancelPendingWithdrawal() {
+    setMsg(null);
+    if (!contract || !address) return;
+
+    const pending = await refetchHasPending();
+    if (!pending.data) {
+      setMsg('There is no pending withdrawal to cancel.');
+      return;
+    }
+
+    setBusy('cancel');
+    try {
+      const hash = await writeContractAsync({
+        address: contract,
+        abi: fhePayAbi,
+        chainId: sepolia.id,
+        functionName: 'cancelWithdrawal',
+      });
+      await waitForHash(hash);
+      await Promise.all([refetchHasPending(), refetchTreasury()]);
+      setMsg('Pending withdrawal canceled and returned to your confidential balance.');
+      if (cofheReady) await decryptBalance();
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : 'Could not cancel withdrawal.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function onWithdraw(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
@@ -161,10 +206,18 @@ export function EmployeePanel() {
       setMsg('Connect your wallet on Sepolia and wait for CoFHE to become ready.');
       return;
     }
+    if (hasPendingWithdrawal) {
+      setMsg('Claim or cancel your pending withdrawal before creating another one.');
+      return;
+    }
 
     const amountWei = parseDecimalToUnits(withdrawAmt, 18);
     if (amountWei === null || amountWei <= 0n) {
       setMsg('Enter a valid ETH amount to withdraw.');
+      return;
+    }
+    if (!isUint128(amountWei)) {
+      setMsg('Withdrawal exceeds the euint128 limit.');
       return;
     }
 
@@ -183,40 +236,38 @@ export function EmployeePanel() {
       await Promise.all([refetchHasPending(), refetchTreasury()]);
       setWithdrawAmt('');
       await claimPendingWithdrawal({ silentIfMissing: true });
-      setBusy(null);
     } catch (err) {
       setMsg(err instanceof Error ? err.message : 'Withdraw request failed.');
+    } finally {
       setBusy(null);
     }
   }
 
   return (
-    <motion.section
-      className="card"
-      style={{ marginTop: '1rem' }}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
+    <motion.section className="card panel-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       <div className="panel-head">
         <div>
-          <h2 style={{ margin: 0, fontFamily: 'Outfit, sans-serif' }}>Employee vault</h2>
-          <p className="prose-muted" style={{ margin: '0.45rem 0 0' }}>
-            Decrypt your confidential salary locally, then request and claim ETH using the verified on-chain proof flow.
+          <p className="eyebrow">Employee vault</p>
+          <h2>Private balance and claims</h2>
+          <p className="prose-muted">
+            Decrypt only what your wallet is allowed to view, request a confidential withdrawal, and settle the verified
+            claim to your wallet.
           </p>
         </div>
-        <span className="badge" style={{ color: cofheReady ? 'var(--accent)' : 'rgba(255,255,255,0.55)' }}>
+        <span className={`status-pill ${hasPendingWithdrawal ? 'status-warn' : 'status-ok'}`}>
+          {hasPendingWithdrawal ? <RefreshCw size={14} /> : <CircleCheck size={14} />}
           {hasPendingWithdrawal ? 'Pending claim' : 'No pending claim'}
         </span>
       </div>
 
-      <div className="stats-grid" style={{ marginTop: '1rem' }}>
+      <div className="stats-grid compact-stats">
         <div className="stat-card">
           <span className="label">Confidential balance</span>
           <strong>{balance === null ? 'Decrypt to view' : formatEtherAmount(balance)}</strong>
         </div>
         <div className="stat-card">
           <span className="label">Confidential salary</span>
-          <strong>{salary === null ? 'Decrypt to view' : formatEtherAmount(salary)}</strong>
+          <strong>{salary === null ? (hasSalary === false ? 'Not registered' : 'Decrypt to view') : formatEtherAmount(salary)}</strong>
         </div>
         <div className="stat-card">
           <span className="label">Treasury liquidity</span>
@@ -224,24 +275,40 @@ export function EmployeePanel() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '1rem' }}>
+      <div className="button-row action-row">
         <button type="button" className="btn" disabled={busy !== null} onClick={() => void decryptBalance()}>
+          <Eye size={16} />
           {busy === 'balance' ? 'Decrypting...' : 'Decrypt balance'}
         </button>
-        <button type="button" className="btn btn-ghost" disabled={busy !== null} onClick={() => void decryptSalary()}>
+        <button type="button" className="btn btn-secondary" disabled={busy !== null} onClick={() => void decryptSalary()}>
+          <LockKeyhole size={16} />
           {busy === 'salary' ? 'Decrypting...' : 'Decrypt salary'}
         </button>
         <button
           type="button"
-          className="btn btn-ghost"
+          className="btn btn-secondary"
           disabled={busy !== null || !hasPendingWithdrawal}
           onClick={() => void claimPendingWithdrawal()}
         >
-          {busy === 'claim' ? 'Claiming...' : 'Claim pending withdrawal'}
+          <Banknote size={16} />
+          {busy === 'claim' ? 'Claiming...' : 'Claim pending'}
+        </button>
+        <button
+          type="button"
+          className="icon-btn"
+          disabled={busy !== null || !hasPendingWithdrawal}
+          title="Cancel pending withdrawal"
+          onClick={() => void cancelPendingWithdrawal()}
+        >
+          <RotateCcw size={18} />
         </button>
       </div>
 
-      <form onSubmit={onWithdraw} className="stack-form" style={{ marginTop: '1.25rem' }}>
+      <form onSubmit={onWithdraw} className="surface-form withdraw-form">
+        <div className="form-title">
+          <Send size={18} />
+          <h3>Withdraw to wallet</h3>
+        </div>
         <div>
           <label className="label" htmlFor="withdraw">
             Withdraw amount (ETH)
@@ -255,21 +322,22 @@ export function EmployeePanel() {
             inputMode="decimal"
           />
         </div>
-        <p className="prose-muted" style={{ margin: 0, fontSize: '0.92rem' }}>
-          This requests a confidential withdrawal, then claims the verified amount into your wallet.
+        <p className="prose-muted small-copy">
+          The amount is encrypted for the request, then revealed only for the final verified settlement transaction.
         </p>
-        <button type="submit" className="btn" disabled={busy !== null}>
-          {busy === 'withdraw' ? 'Requesting...' : 'Withdraw to wallet'}
+        <button type="submit" className="btn" disabled={busy !== null || !!hasPendingWithdrawal}>
+          <Send size={16} />
+          {busy === 'withdraw' ? 'Requesting...' : 'Request and claim'}
         </button>
       </form>
 
       {(msg || lastHash) && (
-        <div className="status-strip" style={{ marginTop: '1rem' }}>
-          {msg && <p style={{ margin: 0 }}>{msg}</p>}
+        <div className="status-strip">
+          {msg && <p>{msg}</p>}
           {lastHash && (
-            <code style={{ fontSize: '0.8rem', wordBreak: 'break-all' }}>
+            <a href={`https://sepolia.etherscan.io/tx/${lastHash}`} target="_blank" rel="noreferrer">
               Tx: {lastHash}
-            </code>
+            </a>
           )}
         </div>
       )}

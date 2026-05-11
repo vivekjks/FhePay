@@ -1,4 +1,5 @@
 import { useReadContract } from 'wagmi';
+import { Copy, ExternalLink, Server, Users, Wallet } from 'lucide-react';
 import { sepolia } from 'viem/chains';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
@@ -19,82 +20,63 @@ export function ContractStatus() {
     functionName: 'payInterval',
     query: { enabled: !!contractAddress },
   });
+  const { data: employeeCount } = useReadContract({
+    address: contractAddress,
+    abi: fhePayAbi,
+    functionName: 'employeeCount',
+    query: { enabled: !!contractAddress },
+  });
 
   if (!contractAddress) return null;
   const safeAddress = contractAddress;
-
   const explorer = `https://sepolia.etherscan.io/address/${safeAddress}`;
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(safeAddress);
     } catch {
-      // ignored
+      // Clipboard access can be blocked by browser settings.
     }
   }
 
   return (
-    <div className="card contract-status">
-      <div>
-        <p className="label" style={{ marginBottom: '0.25rem' }}>
-          Network
-        </p>
-        <span className="badge">{sepolia.name}</span>
-        <span style={{ marginLeft: '0.5rem', color: 'rgba(255,255,255,0.55)', fontSize: '0.85rem' }}>
-          Chain {sepolia.id}
-        </span>
+    <section className="contract-status">
+      <div className="status-tile">
+        <Server size={18} />
+        <div>
+          <span className="label">Network</span>
+          <strong>{sepolia.name}</strong>
+          <small>Chain {sepolia.id}</small>
+        </div>
       </div>
-
-      <div>
-        <p className="label" style={{ marginBottom: '0.25rem' }}>
-          Treasury
-        </p>
-        <strong style={{ fontSize: '1rem' }}>
-          {typeof treasuryBalance === 'bigint' ? formatEtherAmount(treasuryBalance) : 'Loading...'}
-        </strong>
+      <div className="status-tile">
+        <Wallet size={18} />
+        <div>
+          <span className="label">Treasury</span>
+          <strong>{typeof treasuryBalance === 'bigint' ? formatEtherAmount(treasuryBalance) : 'Loading...'}</strong>
+          <small>Claim liquidity</small>
+        </div>
       </div>
-
-      <div>
-        <p className="label" style={{ marginBottom: '0.25rem' }}>
-          Pay interval
-        </p>
-        <strong style={{ fontSize: '1rem' }}>
-          {typeof payInterval === 'bigint' ? formatDuration(payInterval) : 'Loading...'}
-        </strong>
+      <div className="status-tile">
+        <Users size={18} />
+        <div>
+          <span className="label">Roster</span>
+          <strong>{typeof employeeCount === 'bigint' ? employeeCount.toString() : 'Loading...'}</strong>
+          <small>{typeof payInterval === 'bigint' ? formatDuration(payInterval) : 'Pay interval'}</small>
+        </div>
       </div>
-
-      <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-        <p className="label" style={{ marginBottom: '0.25rem' }}>
-          FhePay contract
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-          <code
-            style={{
-              fontSize: '0.8rem',
-              wordBreak: 'break-all',
-              color: 'rgba(255,255,255,0.92)',
-              background: 'rgba(255,255,255,0.06)',
-              padding: '0.35rem 0.5rem',
-              borderRadius: 8,
-              border: '1px solid var(--border)',
-            }}
-          >
-            {safeAddress}
-          </code>
-          <button type="button" className="btn btn-ghost" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={() => void copy()}>
-            Copy
+      <div className="contract-address-tile">
+        <span className="label">FhePay contract</span>
+        <code>{safeAddress}</code>
+        <div className="button-row">
+          <button type="button" className="icon-btn" title="Copy contract address" onClick={() => void copy()}>
+            <Copy size={18} />
           </button>
-          <a
-            href={explorer}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-ghost"
-            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
-          >
-            Etherscan
+          <a href={explorer} target="_blank" rel="noreferrer" className="icon-btn" title="Open on Etherscan">
+            <ExternalLink size={18} />
           </a>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

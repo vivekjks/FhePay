@@ -15,7 +15,7 @@ export function HowItWorks() {
         <p className="badge" style={{ marginBottom: '0.65rem' }}>
           Deep dive
         </p>
-        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: 'clamp(1.85rem, 4vw, 2.2rem)', margin: '0 0 0.5rem' }}>
+        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.1rem', margin: '0 0 0.5rem' }}>
           How the payroll flow works
         </h1>
         <p className="prose-muted" style={{ maxWidth: 720, margin: 0 }}>
@@ -28,14 +28,15 @@ export function HowItWorks() {
         <h2 className="section-title">System model</h2>
         <p className="prose-muted">
           FhePay stores salary, accrued balance, and pending withdrawal requests as <code>euint128</code> ciphertext
-          handles. The contract can add and compare them without seeing plaintext values. The browser encrypts inputs and
-          later decrypts outputs only where the contract's access-control rules permit it.
+          handles. The contract also keeps a public employee directory and active flag so payroll operations can be
+          managed without exposing compensation values. The browser encrypts inputs and later decrypts outputs only
+          where the contract's access-control rules permit it.
         </p>
         <pre
           style={{
             marginTop: '1rem',
             padding: '1rem 1.25rem',
-            borderRadius: 12,
+            borderRadius: 8,
             border: '1px solid var(--border)',
             background: 'rgba(0,0,0,0.35)',
             color: 'rgba(255,255,255,0.8)',
@@ -47,7 +48,7 @@ export function HowItWorks() {
 {`Browser encrypts salary/request
         |
         v
-FhePay stores encrypted salary + balances
+FhePay stores roster + encrypted salary/balances
         |
         +--> paySalary / batchPaySalary uses FHE.add
         |
@@ -69,7 +70,8 @@ claimWithdrawal verifies proof and transfers ETH`}
         <ol className="prose-muted" style={{ paddingLeft: '1.2rem', lineHeight: 1.85, margin: 0 }}>
           <li>Fund the treasury with ETH so employee claims can settle on-chain.</li>
           <li>Encrypt each employee salary in the browser and store it with <code>setSalary</code>.</li>
-          <li>Choose a pay interval to guard against accidental double-pay.</li>
+          <li>Pause or reactivate employee roster entries when payroll status changes.</li>
+          <li>Choose a pay interval and batch limit to guard against accidental duplicate or oversized payroll runs.</li>
           <li>Run payroll for one employee or execute <code>batchPaySalary</code> for the team in one transaction.</li>
         </ol>
       </motion.section>
@@ -88,6 +90,10 @@ claimWithdrawal verifies proof and transfers ETH`}
           <li>
             The pending withdrawal is marked decryptable for settlement, so the client can run <code>decryptForTx</code>{' '}
             and submit the proof to <code>claimWithdrawal</code>.
+          </li>
+          <li>
+            If a pending claim should not settle yet, <code>cancelWithdrawal</code> returns the encrypted pending amount
+            to the confidential balance.
           </li>
         </ol>
       </motion.section>

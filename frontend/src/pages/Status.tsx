@@ -55,6 +55,18 @@ export function Status() {
     functionName: 'payInterval',
     query: { enabled: !!contract },
   });
+  const { data: employeeCount } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'employeeCount',
+    query: { enabled: !!contract },
+  });
+  const { data: maxBatchSize } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'MAX_BATCH_SIZE',
+    query: { enabled: !!contract },
+  });
 
   const onSepolia = chainId === sepolia.id;
   const envOk = !!contract;
@@ -65,7 +77,7 @@ export function Status() {
         <p className="badge" style={{ marginBottom: '0.65rem' }}>
           Diagnostics
         </p>
-        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: 'clamp(1.85rem, 4vw, 2.2rem)', margin: '0 0 0.5rem' }}>
+        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.1rem', margin: '0 0 0.5rem' }}>
           Runtime status
         </h1>
         <p className="prose-muted" style={{ maxWidth: 720, margin: 0 }}>
@@ -112,6 +124,20 @@ export function Status() {
           label="Pay interval"
           ok={typeof payInterval === 'bigint'}
           detail={typeof payInterval === 'bigint' ? formatDuration(payInterval) : 'Reading pay interval'}
+        />
+        <Row
+          label="Roster"
+          ok={typeof employeeCount === 'bigint'}
+          detail={
+            typeof employeeCount === 'bigint'
+              ? `${employeeCount.toString()} registered employees`
+              : 'Reading employee directory'
+          }
+        />
+        <Row
+          label="Batch cap"
+          ok={typeof maxBatchSize === 'bigint'}
+          detail={typeof maxBatchSize === 'bigint' ? `${maxBatchSize.toString()} employees per transaction` : 'Reading batch limit'}
         />
         <Row
           label="CoFHE SDK"

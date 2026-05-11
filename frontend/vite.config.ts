@@ -17,6 +17,11 @@ export default defineConfig({
       buffer: 'buffer',
     },
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      sourcemap: false,
+    },
+  },
   /** CoFHE ships `new Worker(..., { type: 'module' })`; force ES format for worker chunks (Rollup disallows IIFE + split chunks). */
   worker: {
     format: 'es',

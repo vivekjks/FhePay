@@ -19,10 +19,13 @@ export function App() {
           </Link>
           <div className="site-nav-links">
             <NavLink to="/" className={({ isActive }) => (isActive ? 'nav-link nav-link-active' : 'nav-link')} end>
-              Home
-            </NavLink>
-            <NavLink to="/app" className={({ isActive }) => (isActive ? 'nav-link nav-link-active' : 'nav-link')}>
               App
+            </NavLink>
+            <NavLink
+              to="/overview"
+              className={({ isActive }) => (isActive ? 'nav-link nav-link-active' : 'nav-link')}
+            >
+              Overview
             </NavLink>
             <NavLink to="/resources" className={({ isActive }) => (isActive ? 'nav-link nav-link-active' : 'nav-link')}>
               Resources
@@ -41,8 +44,9 @@ export function App() {
       </header>
       <main>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/app" element={<Dashboard />} />
+          <Route path="/overview" element={<Home />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/status" element={<Status />} />

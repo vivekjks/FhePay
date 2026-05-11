@@ -22,12 +22,12 @@ export function Resources() {
         <p className="badge" style={{ marginBottom: '0.75rem' }}>
           Help and reference
         </p>
-        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: 'clamp(1.85rem, 4vw, 2.25rem)', margin: '0 0 0.5rem' }}>
+        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.1rem', margin: '0 0 0.5rem' }}>
           Resources
         </h1>
         <p className="prose-muted" style={{ maxWidth: 720, lineHeight: 1.65, margin: 0 }}>
           Everything you need to demo or evaluate the upgraded FhePay flow on {sepolia.name}: live deployment,
-          documentation, checklists, and troubleshooting for confidential payroll plus ETH settlement.
+          documentation, checklists, and troubleshooting for confidential payroll, roster operations, and ETH settlement.
         </p>
       </motion.header>
 
@@ -45,7 +45,7 @@ export function Resources() {
                 marginTop: '0.75rem',
                 padding: '0.85rem 1rem',
                 background: 'rgba(255,255,255,0.05)',
-                borderRadius: 12,
+                borderRadius: 8,
                 border: '1px solid var(--border)',
                 wordBreak: 'break-all',
                 fontSize: '0.88rem',
@@ -72,7 +72,7 @@ export function Resources() {
           <li>Use two Sepolia wallets: one employer wallet and one employee wallet.</li>
           <li>Fund the employer with enough Sepolia ETH for gas and treasury deposits.</li>
           <li>Open <Link to="/app">App</Link>, connect, and wait for CoFHE to become ready.</li>
-          <li>Fund the treasury, set salary, and run payroll.</li>
+          <li>Fund the treasury, set salary, confirm the roster entry is active, and run payroll.</li>
           <li>Switch to the employee wallet, decrypt the balance, and claim ETH to the wallet.</li>
         </ol>
       </motion.section>
@@ -123,6 +123,11 @@ export function Resources() {
           <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
             A client-side decryption flow that returns both the plaintext and a proof signature for an on-chain action.
           </dd>
+          <dt style={{ fontWeight: 600, marginTop: '0.85rem', color: 'var(--accent)' }}>Roster status</dt>
+          <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
+            Public employee registration and active/inactive state used to control who can be paid in future payroll
+            runs.
+          </dd>
         </dl>
       </motion.section>
 
@@ -147,7 +152,12 @@ export function Resources() {
           <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>What does batch payroll do now?</dt>
           <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
             It calls <code>batchPaySalary</code> once on-chain for the full employee list, reducing wallet-confirmation
-            friction.
+            friction. The contract caps each batch to keep the transaction size predictable.
+          </dd>
+          <dt style={{ fontWeight: 600, marginTop: '1rem', color: 'var(--accent)' }}>Can I clear a stuck claim?</dt>
+          <dd className="prose-muted" style={{ margin: '0.35rem 0 0' }}>
+            Yes. <code>cancelWithdrawal</code> returns the encrypted pending amount to the employee's confidential
+            balance and clears the pending flag.
           </dd>
         </dl>
       </motion.section>

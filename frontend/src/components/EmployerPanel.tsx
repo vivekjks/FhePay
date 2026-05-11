@@ -1,7 +1,19 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import {
+  CalendarClock,
+  CircleCheck,
+  Copy,
+  LockKeyhole,
+  PauseCircle,
+  Play,
+  RefreshCw,
+  UserCheck,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import { Encryptable, assertCorrectEncryptedItemInput } from '@cofhe/sdk';
-import { useAccount, useReadContract, useWriteContract } from 'wagmi';
+import { useAccount, useReadContract, useReadContracts, useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { sepolia } from 'viem/chains';
 import { isAddress } from 'viem/utils';
@@ -10,15 +22,47 @@ import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
 import { useCofheReady } from '../hooks/useCofheReady';
 import { wagmiConfig } from '../wagmi';
-import { formatDateTime, formatDuration, formatEtherAmount, parseDecimalToUnits } from '../utils/format';
+import {
+  formatDateTime,
+  formatDuration,
+  formatEtherAmount,
+  isUint128,
+  parseDecimalToUnits,
+  parseWholeNumber,
+  shortAddress,
+} from '../utils/format';
 
 type Address = `0x${string}`;
 
-function parseAddressList(input: string): Address[] {
-  return input
-    .split(/[\s,]+/)
+const UINT64_MAX = (1n << 64n) - 1n;
+
+function parseAddressList(input: string) {
+  const seen = new Set<string>();
+  const addresses: Address[] = [];
+  const invalid: string[] = [];
+  let duplicates = 0;
+
+  input
+    .split(/[\s,;]+/)
     .map((value) => value.trim())
-    .filter((value): value is Address => isAddress(value));
+    .filter(Boolean)
+    .forEach((value) => {
+      if (!isAddress(value)) {
+        invalid.push(value);
+        return;
+      }
+
+      const key = value.toLowerCase();
+      if (seen.has(key)) {
+        duplicates += 1;
+        return;
+      }
+
+      seen.add(key);
+      addresses.push(value as Address);
+    });
+
+  return { addresses, invalid, duplicates };
 }
 
 export function EmployerPanel() {
@@ -38,6 +82,7 @@ export function EmployerPanel() {
     () => (isAddress(employee) ? (employee as Address) : undefined),
     [employee],
   );
+  const parsedBatch = useMemo(() => parseAddressList(batch), [batch]);
 
   const { writeContractAsync } = useWriteContract();
   const { data: treasuryBalance, refetch: refetchTreasury } = useReadContract({
@@ -52,6 +97,32 @@ export function EmployerPanel() {
     functionName: 'payInterval',
     query: { enabled: !!contract },
   });
+  const { data: maxBatchSize } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'MAX_BATCH_SIZE',
+    query: { enabled: !!contract },
+  });
+  const { data: employeeCount, refetch: refetchEmployeeCount } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'employeeCount',
+    query: { enabled: !!contract },
+  });
+  const { data: selectedHasSalary, refetch: refetchSelectedHasSalary } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'hasSalary',
+    args: employeeAddress ? [employeeAddress] : undefined,
+    query: { enabled: !!contract && !!employeeAddress },
+  });
+  const { data: selectedActive, refetch: refetchSelectedActive } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'isActiveEmployee',
+    args: employeeAddress ? [employeeAddress] : undefined,
+    query: { enabled: !!contract && !!employeeAddress },
+  });
   const { data: nextPayAt, refetch: refetchNextPayAt } = useReadContract({
     address: contract,
     abi: fhePayAbi,
@@ -60,8 +131,40 @@ export function EmployerPanel() {
     query: { enabled: !!contract && !!employeeAddress },
   });
 
+  const rosterIndexes = useMemo(() => {
+    const count = typeof employeeCount === 'bigint' ? Number(employeeCount) : 0;
+    return Array.from({ length: Math.min(count, 24) }, (_, index) => index);
+  }, [employeeCount]);
+
+  const employeeContracts = useMemo(
+    () =>
+      contract
+        ? rosterIndexes.map((index) => ({
+            address: contract,
+            abi: fhePayAbi,
+            functionName: 'employeeAt',
+            args: [BigInt(index)],
+          }))
+        : [],
+    [contract, rosterIndexes],
+  );
+
+  const { data: employeeReads, refetch: refetchEmployees } = useReadContracts({
+    contracts: employeeContracts,
+    query: { enabled: employeeContracts.length > 0 },
+  });
+
+  const employeeRoster = useMemo<Address[]>(() => {
+    const reads = (employeeReads ?? []) as Array<{ result?: unknown }>;
+    return reads
+      .map((entry) => entry.result)
+      .filter((value: unknown): value is Address => typeof value === 'string' && isAddress(value));
+  }, [employeeReads]);
+
+  const maxBatch = typeof maxBatchSize === 'bigint' ? Number(maxBatchSize) : 50;
   const contractDisabled = !contract || !address;
   const encryptionDisabled = contractDisabled || !cofheReady;
+  const selectedReady = !!employeeAddress && selectedHasSalary === true && selectedActive === true;
 
   async function waitForHash(hash: `0x${string}`) {
     setLastHash(hash);
@@ -72,6 +175,10 @@ export function EmployerPanel() {
     await Promise.all([
       refetchTreasury(),
       refetchPayInterval(),
+      refetchEmployeeCount(),
+      refetchEmployees(),
+      employeeAddress ? refetchSelectedHasSalary() : Promise.resolve(),
+      employeeAddress ? refetchSelectedActive() : Promise.resolve(),
       employeeAddress ? refetchNextPayAt() : Promise.resolve(),
     ]);
   }
@@ -88,6 +195,10 @@ export function EmployerPanel() {
     const salaryWei = parseDecimalToUnits(salary, 18);
     if (salaryWei === null || salaryWei <= 0n) {
       setMsg('Enter a valid ETH salary amount.');
+      return;
+    }
+    if (!isUint128(salaryWei)) {
+      setMsg('Salary exceeds the euint128 limit.');
       return;
     }
 
@@ -148,13 +259,18 @@ export function EmployerPanel() {
     setMsg(null);
 
     if (!contract) return;
-    const minutes = Number(intervalMinutes.trim());
-    if (!Number.isFinite(minutes) || !Number.isInteger(minutes) || minutes <= 0) {
+    const minutes = parseWholeNumber(intervalMinutes);
+    if (minutes === null || minutes <= 0n) {
       setMsg('Enter a whole number of minutes greater than zero.');
       return;
     }
 
-    const seconds = BigInt(minutes * 60);
+    const seconds = minutes * 60n;
+    if (seconds > UINT64_MAX) {
+      setMsg('Pay interval is too large for the contract.');
+      return;
+    }
+
     setBusy('interval');
     try {
       const hash = await writeContractAsync({
@@ -166,7 +282,7 @@ export function EmployerPanel() {
       });
       await waitForHash(hash);
       await refreshReads();
-      setMsg(`Pay interval updated to ${formatDuration(minutes * 60)}.`);
+      setMsg(`Pay interval updated to ${formatDuration(seconds)}.`);
     } catch (err) {
       setMsg(err instanceof Error ? err.message : 'Failed to update pay interval.');
     } finally {
@@ -205,9 +321,16 @@ export function EmployerPanel() {
     setMsg(null);
 
     if (!contract) return;
-    const employees = parseAddressList(batch);
-    if (employees.length === 0) {
+    if (parsedBatch.invalid.length > 0) {
+      setMsg(`Fix ${parsedBatch.invalid.length} invalid address${parsedBatch.invalid.length === 1 ? '' : 'es'} before running payroll.`);
+      return;
+    }
+    if (parsedBatch.addresses.length === 0) {
       setMsg('Paste at least one valid employee address.');
+      return;
+    }
+    if (parsedBatch.addresses.length > maxBatch) {
+      setMsg(`Batch size is capped at ${maxBatch} employees per transaction.`);
       return;
     }
 
@@ -218,11 +341,11 @@ export function EmployerPanel() {
         abi: fhePayAbi,
         chainId: sepolia.id,
         functionName: 'batchPaySalary',
-        args: [employees],
+        args: [parsedBatch.addresses],
       });
       await waitForHash(hash);
       await refreshReads();
-      setMsg(`Batch payroll confirmed for ${employees.length} employees.`);
+      setMsg(`Batch payroll confirmed for ${parsedBatch.addresses.length} employees.`);
     } catch (err) {
       setMsg(err instanceof Error ? err.message : 'Batch payroll failed.');
     } finally {
@@ -230,27 +353,64 @@ export function EmployerPanel() {
     }
   }
 
+  async function onSetActive(active: boolean) {
+    setMsg(null);
+    if (!contract || !employeeAddress) {
+      setMsg('Enter a valid employee address.');
+      return;
+    }
+
+    setBusy(active ? 'activate' : 'deactivate');
+    try {
+      const hash = await writeContractAsync({
+        address: contract,
+        abi: fhePayAbi,
+        chainId: sepolia.id,
+        functionName: 'setEmployeeActive',
+        args: [employeeAddress, active],
+      });
+      await waitForHash(hash);
+      await refreshReads();
+      setMsg(active ? 'Employee reactivated for payroll.' : 'Employee paused for future payroll runs.');
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : 'Could not update employee status.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function useRosterForBatch() {
+    if (employeeRoster.length === 0) {
+      setMsg('No on-chain roster entries are loaded yet.');
+      return;
+    }
+    setBatch(employeeRoster.join('\n'));
+    setMsg(`Loaded ${employeeRoster.length} roster address${employeeRoster.length === 1 ? '' : 'es'} into the batch box.`);
+  }
+
+  function selectRosterEmployee(next: Address) {
+    setEmployee(next);
+    setMsg(null);
+  }
+
   return (
-    <motion.section
-      className="card"
-      style={{ marginTop: '1rem' }}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
+    <motion.section className="card panel-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       <div className="panel-head">
         <div>
-          <h2 style={{ margin: 0, fontFamily: 'Outfit, sans-serif' }}>Employer console</h2>
-          <p className="prose-muted" style={{ margin: '0.45rem 0 0' }}>
-            Run payroll from a funded treasury, enforce pay cycles, and keep salary amounts encrypted until an employee
-            chooses to claim funds.
+          <p className="eyebrow">Employer command center</p>
+          <h2>Payroll operations</h2>
+          <p className="prose-muted">
+            Register encrypted salaries, fund treasury liquidity, pause roster entries, and run guarded payroll
+            transactions from one place.
           </p>
         </div>
-        <span className="badge" style={{ color: cofheReady ? 'var(--accent)' : 'rgba(255,255,255,0.55)' }}>
+        <span className={`status-pill ${cofheReady ? 'status-ok' : 'status-warn'}`}>
+          {cofheReady ? <CircleCheck size={14} /> : <RefreshCw size={14} />}
           CoFHE {cofheReady ? 'ready' : 'connecting'}
         </span>
       </div>
 
-      <div className="stats-grid" style={{ marginTop: '1rem' }}>
+      <div className="stats-grid compact-stats">
         <div className="stat-card">
           <span className="label">Treasury</span>
           <strong>{typeof treasuryBalance === 'bigint' ? formatEtherAmount(treasuryBalance) : 'Loading...'}</strong>
@@ -260,7 +420,11 @@ export function EmployerPanel() {
           <strong>{typeof payInterval === 'bigint' ? formatDuration(payInterval) : 'Loading...'}</strong>
         </div>
         <div className="stat-card">
-          <span className="label">Next selected payout</span>
+          <span className="label">Roster</span>
+          <strong>{typeof employeeCount === 'bigint' ? `${employeeCount.toString()} employees` : 'Loading...'}</strong>
+        </div>
+        <div className="stat-card">
+          <span className="label">Selected next pay</span>
           <strong>
             {employeeAddress
               ? typeof nextPayAt === 'bigint'
@@ -272,16 +436,17 @@ export function EmployerPanel() {
       </div>
 
       {contractDisabled && (
-        <p style={{ color: '#ffb6c1', marginTop: '1rem' }}>
+        <div className="notice notice-warn">
           {!contract ? 'Set VITE_FHEPAY_ADDRESS after deployment.' : 'Connect the employer wallet to manage payroll.'}
-        </p>
+        </div>
       )}
 
-      <div className="dashboard-grid" style={{ marginTop: '1rem' }}>
-        <form onSubmit={onSetSalary} className="stack-form">
-          <h3 className="section-title" style={{ fontSize: '1rem', marginBottom: '0.65rem' }}>
-            Set confidential salary
-          </h3>
+      <div className="ops-grid">
+        <form onSubmit={onSetSalary} className="surface-form">
+          <div className="form-title">
+            <LockKeyhole size={18} />
+            <h3>Confidential salary</h3>
+          </div>
           <div>
             <label className="label" htmlFor="emp">
               Employee address
@@ -293,7 +458,19 @@ export function EmployerPanel() {
               value={employee}
               onChange={(e) => setEmployee(e.target.value)}
               autoComplete="off"
+              spellCheck={false}
             />
+          </div>
+          <div className="selected-strip">
+            <span>{employeeAddress ? shortAddress(employeeAddress) : 'No valid employee selected'}</span>
+            <span className={`status-dot ${selectedReady ? 'dot-ok' : 'dot-muted'}`} />
+            <span>
+              {selectedHasSalary === true
+                ? selectedActive === true
+                  ? 'Active payroll'
+                  : 'Paused'
+                : 'Salary not registered'}
+            </span>
           </div>
           <div>
             <label className="label" htmlFor="salary">
@@ -308,15 +485,28 @@ export function EmployerPanel() {
               inputMode="decimal"
             />
           </div>
-          <button type="submit" className="btn" disabled={encryptionDisabled || busy !== null}>
-            {busy === 'salary' ? 'Encrypting...' : 'Encrypt & save salary'}
-          </button>
+          <div className="button-row">
+            <button type="submit" className="btn" disabled={encryptionDisabled || busy !== null}>
+              <LockKeyhole size={16} />
+              {busy === 'salary' ? 'Encrypting...' : 'Encrypt and save'}
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              disabled={contractDisabled || !employeeAddress || selectedHasSalary !== true || busy !== null}
+              title={selectedActive ? 'Pause employee' : 'Reactivate employee'}
+              onClick={() => void onSetActive(selectedActive !== true)}
+            >
+              {selectedActive ? <PauseCircle size={18} /> : <UserCheck size={18} />}
+            </button>
+          </div>
         </form>
 
-        <form onSubmit={onFundTreasury} className="stack-form">
-          <h3 className="section-title" style={{ fontSize: '1rem', marginBottom: '0.65rem' }}>
-            Fund payroll treasury
-          </h3>
+        <form onSubmit={onFundTreasury} className="surface-form">
+          <div className="form-title">
+            <Wallet size={18} />
+            <h3>Treasury liquidity</h3>
+          </div>
           <div>
             <label className="label" htmlFor="treasury">
               Deposit ETH
@@ -330,20 +520,18 @@ export function EmployerPanel() {
               inputMode="decimal"
             />
           </div>
-          <p className="prose-muted" style={{ margin: 0, fontSize: '0.92rem' }}>
-            Claimed withdrawals are settled from this ETH treasury.
-          </p>
-          <button type="submit" className="btn btn-ghost" disabled={contractDisabled || busy !== null}>
+          <p className="prose-muted small-copy">Claims settle from this public ETH treasury.</p>
+          <button type="submit" className="btn btn-secondary" disabled={contractDisabled || busy !== null}>
+            <Wallet size={16} />
             {busy === 'treasury' ? 'Funding...' : 'Fund treasury'}
           </button>
         </form>
-      </div>
 
-      <div className="dashboard-grid" style={{ marginTop: '1rem' }}>
-        <form onSubmit={onUpdateInterval} className="stack-form">
-          <h3 className="section-title" style={{ fontSize: '1rem', marginBottom: '0.65rem' }}>
-            Payroll cadence
-          </h3>
+        <form onSubmit={onUpdateInterval} className="surface-form">
+          <div className="form-title">
+            <CalendarClock size={18} />
+            <h3>Payroll cadence</h3>
+          </div>
           <div>
             <label className="label" htmlFor="interval">
               Minutes between payroll runs
@@ -357,21 +545,27 @@ export function EmployerPanel() {
               inputMode="numeric"
             />
           </div>
-          <button type="submit" className="btn btn-ghost" disabled={contractDisabled || busy !== null}>
+          <p className="prose-muted small-copy">The contract blocks accidental duplicate payments inside the interval.</p>
+          <button type="submit" className="btn btn-secondary" disabled={contractDisabled || busy !== null}>
+            <CalendarClock size={16} />
             {busy === 'interval' ? 'Saving...' : 'Update interval'}
           </button>
         </form>
+      </div>
 
-        <div className="stack-form">
-          <h3 className="section-title" style={{ fontSize: '1rem', marginBottom: '0.65rem' }}>
-            Run payroll
-          </h3>
+      <div className="split-panel">
+        <section className="surface-form">
+          <div className="form-title">
+            <Play size={18} />
+            <h3>Run payroll</h3>
+          </div>
           <button
             type="button"
             className="btn"
             disabled={contractDisabled || !employeeAddress || busy !== null}
             onClick={() => void onPayOne()}
           >
+            <Play size={16} />
             {busy === 'pay-one' ? 'Paying...' : 'Pay selected employee'}
           </button>
           <div>
@@ -381,31 +575,60 @@ export function EmployerPanel() {
             <textarea
               id="batch"
               className="input"
-              rows={4}
-              placeholder="0xabc..., 0xdef..."
+              rows={5}
+              placeholder="0xabc...\n0xdef..."
               value={batch}
               onChange={(e) => setBatch(e.target.value)}
-              style={{ resize: 'vertical' }}
             />
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            disabled={contractDisabled || busy !== null}
-            onClick={() => void onBatchPay()}
-          >
-            {busy === 'batch' ? 'Processing batch...' : 'Run single-tx batch payroll'}
-          </button>
-        </div>
+          <div className="batch-meta">
+            <span>{parsedBatch.addresses.length}/{maxBatch} valid</span>
+            <span>{parsedBatch.invalid.length} invalid</span>
+            <span>{parsedBatch.duplicates} duplicate</span>
+          </div>
+          <div className="button-row">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={contractDisabled || busy !== null}
+              onClick={() => void onBatchPay()}
+            >
+              <Users size={16} />
+              {busy === 'batch' ? 'Processing...' : 'Run batch'}
+            </button>
+            <button type="button" className="icon-btn" title="Load on-chain roster" onClick={useRosterForBatch}>
+              <Copy size={18} />
+            </button>
+          </div>
+        </section>
+
+        <section className="surface-form roster-panel">
+          <div className="form-title">
+            <Users size={18} />
+            <h3>On-chain roster</h3>
+          </div>
+          {employeeRoster.length === 0 ? (
+            <p className="prose-muted small-copy">Register salaries to populate the roster.</p>
+          ) : (
+            <div className="roster-list">
+              {employeeRoster.map((item) => (
+                <button type="button" key={item} className="roster-row" onClick={() => selectRosterEmployee(item)}>
+                  <span>{shortAddress(item)}</span>
+                  <code>{item}</code>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       {(msg || lastHash) && (
-        <div className="status-strip" style={{ marginTop: '1rem' }}>
-          {msg && <p style={{ margin: 0 }}>{msg}</p>}
+        <div className="status-strip">
+          {msg && <p>{msg}</p>}
           {lastHash && (
-            <code style={{ fontSize: '0.8rem', wordBreak: 'break-all' }}>
+            <a href={`https://sepolia.etherscan.io/tx/${lastHash}`} target="_blank" rel="noreferrer">
               Tx: {lastHash}
-            </code>
+            </a>
           )}
         </div>
       )}

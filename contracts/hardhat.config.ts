@@ -17,7 +17,7 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     'eth-sepolia': {
-      url: process.env.SEPOLIA_RPC_URL || 'https://rpc.sepolia.org',
+      url: process.env.SEPOLIA_RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com',
       accounts: (() => {
         const pk = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
         return pk ? [pk] : [];

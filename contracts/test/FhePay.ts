@@ -109,6 +109,32 @@ describe('FhePay', () => {
     ).to.be.revertedWith('FhePay: period locked');
   });
 
+  it('tracks employee directory and active status on-chain', async () => {
+    const fhePay = await deployFhePay();
+
+    const [encSal] = await employerClient
+      .encryptInputs([Encryptable.uint128(600n)])
+      .execute();
+
+    await (await fhePay.connect(employer).setSalary(employee.address, encSal)).wait();
+    await (await fhePay.connect(employer).setSalary(employee.address, encSal)).wait();
+
+    expect(await fhePay.employeeCount()).to.equal(1n);
+    expect(await fhePay.employeeAt(0)).to.equal(employee.address);
+    expect(await fhePay.isEmployee(employee.address)).to.equal(true);
+    expect(await fhePay.isActiveEmployee(employee.address)).to.equal(true);
+
+    await (await fhePay.connect(employer).setEmployeeActive(employee.address, false)).wait();
+    expect(await fhePay.isActiveEmployee(employee.address)).to.equal(false);
+
+    await expect(
+      fhePay.connect(employer).paySalary(employee.address),
+    ).to.be.revertedWith('FhePay: employee inactive');
+
+    await (await fhePay.connect(employer).setEmployeeActive(employee.address, true)).wait();
+    await (await fhePay.connect(employer).paySalary(employee.address)).wait();
+  });
+
   it('batch pays multiple employees in a single transaction', async () => {
     const fhePay = await deployFhePay();
 
@@ -140,5 +166,33 @@ describe('FhePay', () => {
 
     expect(employeeBalance).to.equal(700n);
     expect(secondEmployeeBalance).to.equal(900n);
+  });
+
+  it('lets employees cancel a pending withdrawal and restore encrypted balance', async () => {
+    const fhePay = await deployFhePay();
+
+    const salary = hre.ethers.parseEther('0.02');
+    const withdrawAmt = hre.ethers.parseEther('0.007');
+
+    const [encSal] = await employerClient
+      .encryptInputs([Encryptable.uint128(salary)])
+      .execute();
+    await (await fhePay.connect(employer).setSalary(employee.address, encSal)).wait();
+    await (await fhePay.connect(employer).paySalary(employee.address)).wait();
+
+    const [encWithdraw] = await employeeClient
+      .encryptInputs([Encryptable.uint128(withdrawAmt)])
+      .execute();
+    await (await fhePay.connect(employee).requestWithdraw(encWithdraw)).wait();
+    expect(await fhePay.hasPendingWithdrawal(employee.address)).to.equal(true);
+
+    await (await fhePay.connect(employee).cancelWithdrawal()).wait();
+    expect(await fhePay.hasPendingWithdrawal(employee.address)).to.equal(false);
+
+    const balanceCt = await fhePay.balanceCiphertext(employee.address);
+    const balance = await employeeClient
+      .decryptForView(balanceCt, FheTypes.Uint128)
+      .execute();
+    expect(balance).to.equal(salary);
   });
 });
