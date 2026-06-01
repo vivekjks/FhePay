@@ -6,7 +6,7 @@ Live app: [https://fhepaye.vercel.app](https://fhepaye.vercel.app)
 
 Official CoFHE docs: [https://cofhe-docs.fhenix.zone/](https://cofhe-docs.fhenix.zone/)
 
-## Team
+## Team Roh
 
 - [@happypapa636](https://github.com/happypapa636)
 - [@vivekjks](https://github.com/vivekjks)
