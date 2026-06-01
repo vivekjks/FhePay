@@ -44,12 +44,13 @@ Status: deployed to Ethereum Sepolia
 
 Status: complete
 
-- Contract: `0x2d54375aef6cfdF0D0F696363b000119a26F5E8e`
-- Owner: `0xB3A78E23993cc416DF79c8E954e427Ef15063b20`
+- Contract: `0xd36A6AA303b4c17eCBDB5c0f47B9f216683436CC`
+- Owner: `0x5170da78525944160e88B0071342ECAcF9dc47a2`
 - Frontend env updated to the Wave 5 address
 - Vercel Production and Preview env updated to the Wave 5 address
 - Vercel production deployment completed at `https://fhepaye.vercel.app`
 - SPA route fallback added so `/app` and `/how-it-works` load directly on Vercel
+- Home and proof-flow pages polished with a final product visual and clearer WaveHack story
 - Hardened redeploy blocks payroll when the treasury is below the configured alert threshold
 - Batch payroll skips inactive, locked, or not-due employees instead of reverting the full batch
 - Live encrypted Sepolia smoke passed salary, payroll, withdrawal, claim, bonus, auditor, group, and treasury alert flows

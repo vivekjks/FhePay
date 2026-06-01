@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { ArrowDown, Banknote, Binary, FileKey2, LockKeyhole, Route, ShieldCheck, WalletCards } from 'lucide-react';
 
 const iv = {
   initial: { opacity: 0, y: 12 },
@@ -8,124 +9,137 @@ const iv = {
   transition: { duration: 0.4 },
 };
 
+const flow = [
+  {
+    icon: LockKeyhole,
+    title: 'Browser encrypts payroll inputs',
+    copy: 'Salary and withdrawal amounts are encrypted client-side before they touch the contract.',
+    tag: 'encryptInputs',
+  },
+  {
+    icon: Binary,
+    title: 'FhePay stores encrypted handles',
+    copy: 'The roster is public, but salary, balance, and pending withdrawal values stay as euint128 ciphertext handles.',
+    tag: 'FHE.allow',
+  },
+  {
+    icon: Route,
+    title: 'Payroll uses FHE arithmetic',
+    copy: 'paySalary, batchPaySalary, bonuses, and groups add encrypted salary handles to encrypted balances.',
+    tag: 'FHE.add',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Withdrawal checks stay private',
+    copy: 'requestWithdraw uses encrypted comparison and selection so insufficient requests do not reveal balances.',
+    tag: 'FHE.gte + select',
+  },
+  {
+    icon: FileKey2,
+    title: 'Client prepares settlement proof',
+    copy: 'The pending claim becomes decryptable for transaction settlement through decryptForTx.',
+    tag: 'decryptForTx',
+  },
+  {
+    icon: Banknote,
+    title: 'Contract verifies and pays ETH',
+    copy: 'claimWithdrawal verifies the CoFHE proof and transfers ETH from the funded treasury.',
+    tag: 'verify + transfer',
+  },
+];
+
+const employerSteps = [
+  'Fund the treasury with ETH so claims can settle on-chain.',
+  'Encrypt each salary in the browser and store it with setSalary.',
+  'Pause, reactivate, import, group, and delegate payroll operations.',
+  'Run one employee, a batch, or a due payroll group.',
+];
+
+const employeeSteps = [
+  'Connect the employee wallet and wait for CoFHE readiness.',
+  'Decrypt salary and balance locally with a self permit.',
+  'Request an encrypted withdrawal amount.',
+  'Submit the decryptForTx proof to claim ETH or cancel the pending claim.',
+];
+
+const safetyRows = [
+  ['Privacy boundary', 'Salary and balance math is private; final ETH claim amounts are public settlement.'],
+  ['Role boundary', 'Owner, payroll admin, treasury admin, auditor, and employee flows are separated in the UI.'],
+  ['Treasury boundary', 'The alert threshold can block payroll when claim liquidity is below the configured floor.'],
+];
+
 export function HowItWorks() {
   return (
-    <div>
-      <motion.header initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-        <p className="badge" style={{ marginBottom: '0.65rem' }}>
-          Deep dive
-        </p>
-        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.1rem', margin: '0 0 0.5rem' }}>
-          How the payroll flow works
-        </h1>
-        <p className="prose-muted" style={{ maxWidth: 720, margin: 0 }}>
-          A concise map from salary setup to a claimed ETH payout, using encrypted balances, threshold-network
-          decryption, and a treasury-backed settlement path.
+    <div className="flow-page">
+      <motion.header className="flow-hero" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+        <p className="eyebrow">Proof flow</p>
+        <h1>How private payroll becomes verified ETH.</h1>
+        <p className="hero-copy">
+          FhePay keeps salary arithmetic encrypted, exposes only operational metadata, and uses CoFHE transaction
+          decryption proofs for the final on-chain claim.
         </p>
       </motion.header>
 
-      <motion.section className="card" style={{ marginTop: '1.5rem' }} {...iv}>
-        <h2 className="section-title">System model</h2>
-        <p className="prose-muted">
-          FhePay stores salary, accrued balance, and pending withdrawal requests as <code>euint128</code> ciphertext
-          handles. The contract also keeps a public employee directory and active flag so payroll operations can be
-          managed without exposing compensation values. The browser encrypts inputs and later decrypts outputs only
-          where the contract's access-control rules permit it.
-        </p>
-        <pre
-          style={{
-            marginTop: '1rem',
-            padding: '1rem 1.25rem',
-            borderRadius: 8,
-            border: '1px solid var(--border)',
-            background: 'rgba(0,0,0,0.35)',
-            color: 'rgba(255,255,255,0.8)',
-            fontSize: '0.8rem',
-            lineHeight: 1.55,
-            overflow: 'auto',
-          }}
-        >
-{`Browser encrypts salary/request
-        |
-        v
-FhePay stores roster + encrypted salary/balances
-        |
-        +--> paySalary / batchPaySalary uses FHE.add
-        |
-        +--> requestWithdraw uses FHE.gte + FHE.select
-        |
-        v
-Pending claim becomes decryptable for settlement
-        |
-        v
-Client runs decryptForTx and submits proof
-        |
-        v
-claimWithdrawal verifies proof and transfers ETH`}
-        </pre>
+      <motion.section className="flow-map-panel" {...iv}>
+        <div className="flow-map">
+          {flow.map(({ icon: Icon, title, copy, tag }, index) => (
+            <div className="flow-map-item" key={title}>
+              <article>
+                <span className="step-num">{String(index + 1).padStart(2, '0')}</span>
+                <Icon size={21} />
+                <strong>{title}</strong>
+                <p>{copy}</p>
+                <code>{tag}</code>
+              </article>
+              {index < flow.length - 1 && (
+                <span className="flow-map-arrow" aria-hidden="true">
+                  <ArrowDown size={18} />
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
       </motion.section>
 
-      <motion.section className="card" style={{ marginTop: '1rem' }} {...iv}>
-        <h2 className="section-title">Employer lifecycle</h2>
-        <ol className="prose-muted" style={{ paddingLeft: '1.2rem', lineHeight: 1.85, margin: 0 }}>
-          <li>Fund the treasury with ETH so employee claims can settle on-chain.</li>
-          <li>Encrypt each employee salary in the browser and store it with <code>setSalary</code>.</li>
-          <li>Pause or reactivate employee roster entries when payroll status changes.</li>
-          <li>Choose a pay interval and batch limit to guard against accidental duplicate or oversized payroll runs.</li>
-          <li>Run payroll for one employee or execute <code>batchPaySalary</code> for the team in one transaction.</li>
-        </ol>
+      <section className="flow-split">
+        <motion.article className="card lifecycle-card" {...iv}>
+          <div className="form-title">
+            <WalletCards size={19} />
+            <h2 className="section-title">Employer lifecycle</h2>
+          </div>
+          <ol className="clean-list">
+            {employerSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </motion.article>
+
+        <motion.article className="card lifecycle-card" {...iv}>
+          <div className="form-title">
+            <LockKeyhole size={19} />
+            <h2 className="section-title">Employee lifecycle</h2>
+          </div>
+          <ol className="clean-list">
+            {employeeSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </motion.article>
+      </section>
+
+      <motion.section className="card boundary-card" {...iv}>
+        <h2 className="section-title">Production boundaries</h2>
+        <div className="boundary-grid">
+          {safetyRows.map(([title, copy]) => (
+            <article key={title}>
+              <strong>{title}</strong>
+              <p>{copy}</p>
+            </article>
+          ))}
+        </div>
       </motion.section>
 
-      <motion.section className="card" style={{ marginTop: '1rem' }} {...iv}>
-        <h2 className="section-title">Employee lifecycle</h2>
-        <ol className="prose-muted" style={{ paddingLeft: '1.2rem', lineHeight: 1.85, margin: 0 }}>
-          <li>Read the ciphertext handles for your salary and balance from the contract.</li>
-          <li>
-            Decrypt them locally with <code>decryptForView(...).withPermit()</code> using your self permit.
-          </li>
-          <li>
-            Request a withdrawal with an encrypted amount. The contract subtracts it confidentially if your balance is
-            sufficient.
-          </li>
-          <li>
-            The pending withdrawal is marked decryptable for settlement, so the client can run <code>decryptForTx</code>{' '}
-            and submit the proof to <code>claimWithdrawal</code>.
-          </li>
-          <li>
-            If a pending claim should not settle yet, <code>cancelWithdrawal</code> returns the encrypted pending amount
-            to the confidential balance.
-          </li>
-        </ol>
-      </motion.section>
-
-      <motion.section className="card" style={{ marginTop: '1rem' }} {...iv}>
-        <h2 className="section-title">Why this matches the Fhenix model</h2>
-        <ul className="prose-muted" style={{ paddingLeft: '1.2rem', margin: 0, lineHeight: 1.8 }}>
-          <li>
-            <strong style={{ color: 'var(--fg)' }}>ACL-compliant viewing:</strong> employee balance and salary decrypts
-            use address-scoped access plus permits.
-          </li>
-          <li>
-            <strong style={{ color: 'var(--fg)' }}>Verified settlement:</strong> claimable withdrawals use the documented
-            decrypt-for-transaction flow and on-chain signature verification.
-          </li>
-          <li>
-            <strong style={{ color: 'var(--fg)' }}>Operational safety:</strong> the pay interval blocks accidental rapid
-            repeats, and batch payroll reduces wallet-confirmation fatigue.
-          </li>
-        </ul>
-      </motion.section>
-
-      <motion.section className="card" style={{ marginTop: '1rem' }} {...iv}>
-        <h2 className="section-title">What remains public</h2>
-        <p className="prose-muted">
-          Treasury deposits, wallet addresses, and final ETH claims are public. Confidential salary and intermediate
-          payroll balances are not. This is a pragmatic privacy boundary that keeps payroll arithmetic private while
-          preserving verifiable settlement.
-        </p>
-      </motion.section>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center', marginTop: '2rem' }}>
+      <div className="flow-actions">
         <Link to="/app" className="btn">
           Open dashboard
         </Link>

@@ -1,0 +1,17 @@
+<svg width="960" height="720" viewBox="0 0 960 720" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">FhePay brand mark</title>
+  <desc id="desc">A clean FhePay logo mark for confidential payroll on Sepolia.</desc>
+  <rect x="122" y="86" width="716" height="548" rx="44" fill="#10161A" stroke="#DFFCF2" stroke-opacity="0.16" stroke-width="2"/>
+  <rect x="160" y="124" width="640" height="472" rx="32" fill="#151D22" stroke="#DFFCF2" stroke-opacity="0.12"/>
+  <path d="M480 172L632 252V416C632 496 568 548 480 572C392 548 328 496 328 416V252L480 172Z" fill="#0A0F12" stroke="#6EE7B7" stroke-width="10"/>
+  <path d="M480 212L590 270V416C590 472 546 510 480 532C414 510 370 472 370 416V270L480 212Z" fill="#13241F" stroke="#67E8F9" stroke-opacity="0.55" stroke-width="4"/>
+  <path d="M420 372H540V482H420V372Z" fill="#F4F8F7"/>
+  <path d="M438 372V338C438 314.804 456.804 296 480 296C503.196 296 522 314.804 522 338V372" stroke="#F4F8F7" stroke-width="26" stroke-linecap="round"/>
+  <path d="M480 410V452" stroke="#0A0F12" stroke-width="16" stroke-linecap="round"/>
+  <path d="M240 234H324" stroke="#6EE7B7" stroke-width="8" stroke-linecap="round"/>
+  <path d="M636 234H720" stroke="#67E8F9" stroke-width="8" stroke-linecap="round"/>
+  <path d="M244 486H334" stroke="#A78BFA" stroke-width="8" stroke-linecap="round"/>
+  <path d="M626 486H716" stroke="#FBBF24" stroke-width="8" stroke-linecap="round"/>
+  <text x="480" y="672" text-anchor="middle" fill="#F4F8F7" font-family="Outfit, DM Sans, Arial, sans-serif" font-size="76" font-weight="800" letter-spacing="0">FhePay</text>
+  <text x="480" y="710" text-anchor="middle" fill="#AAB7B6" font-family="DM Sans, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="2">CONFIDENTIAL PAYROLL</text>
+</svg>
