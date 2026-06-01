@@ -669,7 +669,7 @@ export function Wave5Panel({ isOwner, canOperatePayroll, canOperateTreasury }: W
     <motion.section className="card panel-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       <div className="panel-head">
         <div>
-          <p className="eyebrow">Wave 5 controls</p>
+          <p className="eyebrow">Operations controls</p>
           <h2>Governance, groups, audit, and automation</h2>
           <p className="prose-muted">Safe handoff, roles, groups, bonuses, CSV, and alerts.</p>
         </div>

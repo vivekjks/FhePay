@@ -405,7 +405,7 @@ main {
 }
 
 .home-proof-grid > div,
-.wave-list article,
+.operations-list article,
 .boundary-grid article {
   min-width: 0;
   border: 1px solid var(--border);
@@ -418,7 +418,7 @@ main {
 }
 
 .home-proof-grid span,
-.wave-list span {
+.operations-list span {
   display: block;
   margin-bottom: 0.35rem;
   color: var(--muted-2);
@@ -498,7 +498,7 @@ main {
 }
 
 .home-capabilities .section-heading .prose-muted,
-.wave-timeline .section-heading h2,
+.operations-section .section-heading h2,
 .flow-hero .hero-copy {
   max-width: 680px;
 }
@@ -575,7 +575,7 @@ main {
   line-height: 1.5;
 }
 
-.wave-timeline {
+.operations-section {
   display: grid;
   grid-template-columns: minmax(240px, 0.38fr) minmax(0, 1fr);
   gap: 2rem;
@@ -584,17 +584,17 @@ main {
   border-top: 1px solid var(--border);
 }
 
-.wave-list {
+.operations-list {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
-.wave-list article {
+.operations-list article {
   padding: 1rem;
 }
 
-.wave-list p {
+.operations-list p {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
@@ -1571,7 +1571,7 @@ td {
   .overview-hero,
   .home-hero,
   .home-section,
-  .wave-timeline,
+  .operations-section,
   .contract-status,
   .ops-grid,
   .split-panel,
@@ -1600,7 +1600,7 @@ td {
     gap: 1.5rem;
   }
 
-  .wave-list {
+  .operations-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1675,7 +1675,7 @@ td {
   }
 
   .home-proof-grid,
-  .wave-list,
+  .operations-list,
   .home-flow,
   .flow-map {
     grid-template-columns: 1fr;

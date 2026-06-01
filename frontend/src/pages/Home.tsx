@@ -38,12 +38,12 @@ const capabilities = [
   },
 ];
 
-const waves = [
-  ['Wave 1', 'Prototype payroll console and first encrypted salary loop.'],
-  ['Wave 2', 'Employer and employee flows split into clearer app surfaces.'],
-  ['Wave 3', 'Confidential ETH withdrawal claims using decrypt-for-transaction proofs.'],
-  ['Wave 4', 'Roster, active status, batch payroll, cancel withdrawal, and safer inputs.'],
-  ['Wave 5', 'Delegated roles, payroll groups, CSV import, bonuses, auditors, alerts, and automation hooks.'],
+const operations = [
+  ['Admin control', 'Safe-ready ownership handoff, delegated payroll and treasury admins, and role-aware workspaces.'],
+  ['Payroll scale', 'Roster management, batch payroll, payroll groups, CSV import, and recurring upkeep hooks.'],
+  ['Private rewards', 'Encrypted salaries, confidential bonuses, private balances, and employee-owned withdrawal claims.'],
+  ['Audit access', 'Selective disclosure lets auditors review only the encrypted handles granted to their wallet.'],
+  ['Treasury safety', 'On-chain alert thresholds, liquidity visibility, and proof-verified ETH settlement paths.'],
 ];
 
 const proofPoints = [
@@ -66,7 +66,7 @@ export function Home() {
       <motion.section className="home-hero home-hero-polished" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="home-hero-copy">
           <div className="hero-kicker">
-            <span>WaveHack final build</span>
+            <span>Production payroll console</span>
             <span>Live on Sepolia</span>
           </div>
           <h1>Trustless payroll. Private numbers.</h1>
@@ -123,7 +123,7 @@ export function Home() {
 
       <section className="home-section home-capabilities">
         <div className="section-heading">
-          <p className="eyebrow">Final app surface</p>
+          <p className="eyebrow">Product surface</p>
           <h2>A real payroll workflow, not a static demo.</h2>
           <p className="prose-muted">
             The app covers employer operations, employee claims, auditor review, and treasury safety from one connected
@@ -160,15 +160,15 @@ export function Home() {
         </div>
       </section>
 
-      <section className="wave-timeline" aria-label="Wave history">
+      <section className="operations-section" aria-label="Production capabilities">
         <div className="section-heading">
-          <p className="eyebrow">Built across five waves</p>
-          <h2>From encrypted payroll prototype to deployed operations console.</h2>
+          <p className="eyebrow">Production capabilities</p>
+          <h2>Everything needed to run private payroll from one place.</h2>
         </div>
-        <div className="wave-list">
-          {waves.map(([wave, copy]) => (
-            <article key={wave}>
-              <span>{wave}</span>
+        <div className="operations-list">
+          {operations.map(([title, copy]) => (
+            <article key={title}>
+              <span>{title}</span>
               <p>{copy}</p>
             </article>
           ))}
@@ -177,7 +177,7 @@ export function Home() {
 
       <section className="home-final home-final-polished">
         <div>
-          <p className="eyebrow">Ready for judging</p>
+          <p className="eyebrow">Ready to run</p>
           <h2>Open the console, connect Sepolia, and run the private payroll flow end to end.</h2>
         </div>
         <Link to="/app" className="btn">

@@ -118,7 +118,7 @@ export function Dashboard() {
       },
       {
         id: 'advanced',
-        label: 'Wave 5',
+        label: 'Operations',
         eyebrow: 'Governance and operations',
         description: 'Roles, Safe handoff, groups, CSV import, bonuses, auditors, automation, and treasury alerts.',
         icon: SlidersHorizontal,
