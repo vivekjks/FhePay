@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { WagmiAdapter } from '@cofhe/sdk/adapters';
-import { cofheClient } from '../cofhe';
+import { disconnectLoadedCofheClient, getCofheClient } from '../cofhe';
 
 /** Keeps @cofhe/sdk connected to the active wagmi wallet + Sepolia. */
 export function useCofheSync() {
@@ -11,19 +10,24 @@ export function useCofheSync() {
 
   useEffect(() => {
     if (!isConnected || !walletClient || !publicClient) {
-      cofheClient.disconnect();
+      disconnectLoadedCofheClient();
       return;
     }
     let cancelled = false;
     (async () => {
       try {
+        const [{ WagmiAdapter }, cofheClient] = await Promise.all([
+          import('@cofhe/sdk/adapters'),
+          getCofheClient(),
+        ]);
+        // Keep the adapter boundary tolerant of viem peer-version drift between wagmi and @cofhe/sdk.
         const { publicClient: pc, walletClient: wc } = await WagmiAdapter(
-          walletClient,
-          publicClient,
+          walletClient as never,
+          publicClient as never,
         );
         if (!cancelled) {
           // viem minor API drift between wagmi and @cofhe/sdk peer deps
-          await cofheClient.connect(pc as never, wc as never);
+          await cofheClient.connect(pc, wc);
         }
       } catch (e) {
         console.error('CoFHE connect failed', e);

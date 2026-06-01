@@ -12,12 +12,11 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { Encryptable, assertCorrectEncryptedItemInput } from '@cofhe/sdk';
 import { useAccount, useReadContract, useReadContracts, useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { sepolia } from 'viem/chains';
 import { isAddress } from 'viem/utils';
-import { cofheClient } from '../cofhe';
+import { getCofheClient } from '../cofhe';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
 import { useCofheReady } from '../hooks/useCofheReady';
@@ -31,6 +30,7 @@ import {
   parseWholeNumber,
   shortAddress,
 } from '../utils/format';
+import { toEncryptedItemInput } from '../utils/cofheInput';
 
 type Address = `0x${string}`;
 
@@ -77,6 +77,7 @@ export function EmployerPanel() {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [lastHash, setLastHash] = useState<`0x${string}` | null>(null);
+  const [visibleRosterCount, setVisibleRosterCount] = useState(24);
 
   const employeeAddress = useMemo(
     () => (isAddress(employee) ? (employee as Address) : undefined),
@@ -102,6 +103,20 @@ export function EmployerPanel() {
     abi: fhePayAbi,
     functionName: 'MAX_BATCH_SIZE',
     query: { enabled: !!contract },
+  });
+  const { data: canPayroll } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'isPayrollAdmin',
+    args: address ? [address] : undefined,
+    query: { enabled: !!contract && !!address },
+  });
+  const { data: canTreasury } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'isTreasuryAdmin',
+    args: address ? [address] : undefined,
+    query: { enabled: !!contract && !!address },
   });
   const { data: employeeCount, refetch: refetchEmployeeCount } = useReadContract({
     address: contract,
@@ -133,8 +148,8 @@ export function EmployerPanel() {
 
   const rosterIndexes = useMemo(() => {
     const count = typeof employeeCount === 'bigint' ? Number(employeeCount) : 0;
-    return Array.from({ length: Math.min(count, 24) }, (_, index) => index);
-  }, [employeeCount]);
+    return Array.from({ length: Math.min(count, visibleRosterCount) }, (_, index) => index);
+  }, [employeeCount, visibleRosterCount]);
 
   const employeeContracts = useMemo(
     () =>
@@ -163,7 +178,9 @@ export function EmployerPanel() {
 
   const maxBatch = typeof maxBatchSize === 'bigint' ? Number(maxBatchSize) : 50;
   const contractDisabled = !contract || !address;
-  const encryptionDisabled = contractDisabled || !cofheReady;
+  const payrollDisabled = contractDisabled || canPayroll !== true;
+  const treasuryDisabled = contractDisabled || canTreasury !== true;
+  const encryptionDisabled = payrollDisabled || !cofheReady;
   const selectedReady = !!employeeAddress && selectedHasSalary === true && selectedActive === true;
 
   async function waitForHash(hash: `0x${string}`) {
@@ -204,14 +221,18 @@ export function EmployerPanel() {
 
     setBusy('salary');
     try {
+      const [{ Encryptable }, cofheClient] = await Promise.all([
+        import('@cofhe/sdk'),
+        getCofheClient(),
+      ]);
       const [enc] = await cofheClient.encryptInputs([Encryptable.uint128(salaryWei)]).execute();
-      assertCorrectEncryptedItemInput(enc);
+      const encryptedSalary = toEncryptedItemInput(enc);
       const hash = await writeContractAsync({
         address: contract,
         abi: fhePayAbi,
         chainId: sepolia.id,
         functionName: 'setSalary',
-        args: [employeeAddress, enc],
+        args: [employeeAddress, encryptedSalary],
       });
       await waitForHash(hash);
       await refreshReads();
@@ -345,7 +366,7 @@ export function EmployerPanel() {
       });
       await waitForHash(hash);
       await refreshReads();
-      setMsg(`Batch payroll confirmed for ${parsedBatch.addresses.length} employees.`);
+      setMsg(`Batch payroll submitted for ${parsedBatch.addresses.length} employees; inactive or not-due entries are skipped on-chain.`);
     } catch (err) {
       setMsg(err instanceof Error ? err.message : 'Batch payroll failed.');
     } finally {
@@ -399,10 +420,7 @@ export function EmployerPanel() {
         <div>
           <p className="eyebrow">Employer command center</p>
           <h2>Payroll operations</h2>
-          <p className="prose-muted">
-            Register encrypted salaries, fund treasury liquidity, pause roster entries, and run guarded payroll
-            transactions from one place.
-          </p>
+          <p className="prose-muted">Set salaries, fund treasury, and run payroll.</p>
         </div>
         <span className={`status-pill ${cofheReady ? 'status-ok' : 'status-warn'}`}>
           {cofheReady ? <CircleCheck size={14} /> : <RefreshCw size={14} />}
@@ -438,6 +456,13 @@ export function EmployerPanel() {
       {contractDisabled && (
         <div className="notice notice-warn">
           {!contract ? 'Set VITE_FHEPAY_ADDRESS after deployment.' : 'Connect the employer wallet to manage payroll.'}
+        </div>
+      )}
+      {!contractDisabled && canPayroll !== true && (
+        <div className="notice notice-warn">
+          {canTreasury === true
+            ? 'This wallet can fund treasury and manage treasury settings, but cannot run payroll.'
+            : 'This wallet is not a payroll admin for the connected contract.'}
         </div>
       )}
 
@@ -493,7 +518,7 @@ export function EmployerPanel() {
             <button
               type="button"
               className="icon-btn"
-              disabled={contractDisabled || !employeeAddress || selectedHasSalary !== true || busy !== null}
+              disabled={payrollDisabled || !employeeAddress || selectedHasSalary !== true || busy !== null}
               title={selectedActive ? 'Pause employee' : 'Reactivate employee'}
               onClick={() => void onSetActive(selectedActive !== true)}
             >
@@ -521,7 +546,7 @@ export function EmployerPanel() {
             />
           </div>
           <p className="prose-muted small-copy">Claims settle from this public ETH treasury.</p>
-          <button type="submit" className="btn btn-secondary" disabled={contractDisabled || busy !== null}>
+          <button type="submit" className="btn btn-secondary" disabled={treasuryDisabled || busy !== null}>
             <Wallet size={16} />
             {busy === 'treasury' ? 'Funding...' : 'Fund treasury'}
           </button>
@@ -546,7 +571,7 @@ export function EmployerPanel() {
             />
           </div>
           <p className="prose-muted small-copy">The contract blocks accidental duplicate payments inside the interval.</p>
-          <button type="submit" className="btn btn-secondary" disabled={contractDisabled || busy !== null}>
+          <button type="submit" className="btn btn-secondary" disabled={payrollDisabled || busy !== null}>
             <CalendarClock size={16} />
             {busy === 'interval' ? 'Saving...' : 'Update interval'}
           </button>
@@ -562,7 +587,7 @@ export function EmployerPanel() {
           <button
             type="button"
             className="btn"
-            disabled={contractDisabled || !employeeAddress || busy !== null}
+            disabled={payrollDisabled || !employeeAddress || busy !== null}
             onClick={() => void onPayOne()}
           >
             <Play size={16} />
@@ -590,7 +615,7 @@ export function EmployerPanel() {
             <button
               type="button"
               className="btn btn-secondary"
-              disabled={contractDisabled || busy !== null}
+              disabled={payrollDisabled || busy !== null}
               onClick={() => void onBatchPay()}
             >
               <Users size={16} />
@@ -610,14 +635,25 @@ export function EmployerPanel() {
           {employeeRoster.length === 0 ? (
             <p className="prose-muted small-copy">Register salaries to populate the roster.</p>
           ) : (
-            <div className="roster-list">
-              {employeeRoster.map((item) => (
-                <button type="button" key={item} className="roster-row" onClick={() => selectRosterEmployee(item)}>
-                  <span>{shortAddress(item)}</span>
-                  <code>{item}</code>
+            <>
+              <div className="roster-list">
+                {employeeRoster.map((item) => (
+                  <button type="button" key={item} className="roster-row" onClick={() => selectRosterEmployee(item)}>
+                    <span>{shortAddress(item)}</span>
+                    <code>{item}</code>
+                  </button>
+                ))}
+              </div>
+              {typeof employeeCount === 'bigint' && BigInt(employeeRoster.length) < employeeCount && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setVisibleRosterCount((count) => count + 24)}
+                >
+                  Load more
                 </button>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </section>
       </div>

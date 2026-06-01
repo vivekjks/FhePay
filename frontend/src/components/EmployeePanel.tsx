@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Banknote, CircleCheck, Eye, LockKeyhole, RefreshCw, RotateCcw, Send } from 'lucide-react';
-import { Encryptable, assertCorrectEncryptedItemInput, FheTypes } from '@cofhe/sdk';
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { sepolia } from 'viem/chains';
-import { cofheClient } from '../cofhe';
+import { getCofheClient } from '../cofhe';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
 import { useCofheReady } from '../hooks/useCofheReady';
 import { wagmiConfig } from '../wagmi';
 import { formatEtherAmount, isUint128, parseDecimalToUnits } from '../utils/format';
+import { toEncryptedItemInput } from '../utils/cofheInput';
 
 type Hash = `0x${string}`;
 
@@ -49,6 +49,7 @@ export function EmployeePanel() {
   });
 
   async function ensureSelfPermit() {
+    const cofheClient = await getCofheClient();
     await cofheClient.permits.getOrCreateSelfPermit();
   }
 
@@ -66,6 +67,7 @@ export function EmployeePanel() {
 
     setBusy('balance');
     try {
+      const [{ FheTypes }, cofheClient] = await Promise.all([import('@cofhe/sdk'), getCofheClient()]);
       const ct = (await publicClient.readContract({
         address: contract,
         abi: fhePayAbi,
@@ -96,6 +98,7 @@ export function EmployeePanel() {
 
     setBusy('salary');
     try {
+      const [{ FheTypes }, cofheClient] = await Promise.all([import('@cofhe/sdk'), getCofheClient()]);
       const ct = (await publicClient.readContract({
         address: contract,
         abi: fhePayAbi,
@@ -129,6 +132,7 @@ export function EmployeePanel() {
     setBusy('claim');
     setMsg(null);
     try {
+      const cofheClient = await getCofheClient();
       const pendingCt = (await publicClient.readContract({
         address: contract,
         abi: fhePayAbi,
@@ -223,14 +227,18 @@ export function EmployeePanel() {
 
     setBusy('withdraw');
     try {
+      const [{ Encryptable }, cofheClient] = await Promise.all([
+        import('@cofhe/sdk'),
+        getCofheClient(),
+      ]);
       const [enc] = await cofheClient.encryptInputs([Encryptable.uint128(amountWei)]).execute();
-      assertCorrectEncryptedItemInput(enc);
+      const encryptedAmount = toEncryptedItemInput(enc);
       const requestHash = await writeContractAsync({
         address: contract,
         abi: fhePayAbi,
         chainId: sepolia.id,
         functionName: 'requestWithdraw',
-        args: [enc],
+        args: [encryptedAmount],
       });
       await waitForHash(requestHash);
       await Promise.all([refetchHasPending(), refetchTreasury()]);
@@ -249,10 +257,7 @@ export function EmployeePanel() {
         <div>
           <p className="eyebrow">Employee vault</p>
           <h2>Private balance and claims</h2>
-          <p className="prose-muted">
-            Decrypt only what your wallet is allowed to view, request a confidential withdrawal, and settle the verified
-            claim to your wallet.
-          </p>
+          <p className="prose-muted">Decrypt your values and claim verified ETH.</p>
         </div>
         <span className={`status-pill ${hasPendingWithdrawal ? 'status-warn' : 'status-ok'}`}>
           {hasPendingWithdrawal ? <RefreshCw size={14} /> : <CircleCheck size={14} />}
@@ -322,9 +327,7 @@ export function EmployeePanel() {
             inputMode="decimal"
           />
         </div>
-        <p className="prose-muted small-copy">
-          The amount is encrypted for the request, then revealed only for the final verified settlement transaction.
-        </p>
+        <p className="prose-muted small-copy">Encrypted request, verified public settlement.</p>
         <button type="submit" className="btn" disabled={busy !== null || !!hasPendingWithdrawal}>
           <Send size={16} />
           {busy === 'withdraw' ? 'Requesting...' : 'Request and claim'}

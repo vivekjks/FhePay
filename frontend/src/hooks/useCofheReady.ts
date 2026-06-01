@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { cofheClient } from '../cofhe';
+import { getLoadedCofheClient } from '../cofhe';
 
 /** Reflects @cofhe/sdk connection (wallet + viem clients wired). */
 export function useCofheReady() {
-  const [ready, setReady] = useState(cofheClient.connected);
+  const [ready, setReady] = useState(Boolean(getLoadedCofheClient()?.connected));
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setReady(cofheClient.connected);
+      setReady(Boolean(getLoadedCofheClient()?.connected));
     }, 400);
     return () => window.clearInterval(id);
   }, []);

@@ -1,75 +1,27 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-
-function MarqueeBrands() {
-  return (
-    <>
-      {Array.from({ length: 6 }, (_, i) => (
-        <span key={`a-${i}`} className="footer-brand" style={{ opacity: i % 2 === 0 ? 1 : 0.4 }}>
-          FhePay
-        </span>
-      ))}
-      {Array.from({ length: 6 }, (_, i) => (
-        <span key={`b-${i}`} className="footer-brand" style={{ opacity: i % 2 === 0 ? 1 : 0.4 }}>
-          FhePay
-        </span>
-      ))}
-    </>
-  );
-}
+import { ExternalLink, ShieldCheck } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer
-      style={{
-        borderTop: '1px solid var(--border)',
-        padding: '2rem 1rem',
-        marginTop: 'auto',
-        background: 'linear-gradient(180deg, transparent, rgba(110,231,183,0.05))',
-      }}
-    >
-      <motion.div
-        className="marquee-wrap"
-        style={{ marginBottom: '1.25rem' }}
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-      >
-        <div className="footer-marquee-inner" aria-hidden>
-          <MarqueeBrands />
+    <footer className="site-footer">
+      <div className="footer-shell">
+        <div className="footer-mark">
+          <span className="footer-logo">FhePay</span>
+          <span className="status-pill status-ok">
+            <ShieldCheck size={14} />
+            Sepolia
+          </span>
         </div>
-      </motion.div>
-      <div
-        style={{
-          maxWidth: 1120,
-          margin: '0 auto',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: '0.9rem',
-          color: 'rgba(255,255,255,0.55)',
-        }}
-      >
-        <p style={{ margin: 0 }}>
-          Confidential payroll powered by{' '}
-          <a href="https://cofhe-docs.fhenix.zone/" target="_blank" rel="noreferrer">
-            Fhenix CoFHE
-          </a>
-          . Amounts stay encrypted on Ethereum Sepolia.
-        </p>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span className="badge">Sepolia</span>
-          <Link to="/">App</Link>
-          <Link to="/overview">Overview</Link>
-          <Link to="/how-it-works">How it works</Link>
-          <Link to="/status">Status</Link>
-          <Link to="/resources">Resources</Link>
+        <p className="footer-copy">Confidential payroll powered by Fhenix CoFHE.</p>
+        <nav className="footer-links" aria-label="Footer">
+          <Link to="/">Home</Link>
+          <Link to="/app">App</Link>
+          <Link to="/how-it-works">Flow</Link>
           <a href="https://cofhe-docs.fhenix.zone/" target="_blank" rel="noreferrer">
             Docs
+            <ExternalLink size={13} />
           </a>
-        </div>
+        </nav>
       </div>
     </footer>
   );

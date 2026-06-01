@@ -25,14 +25,31 @@ Status: complete
 - Added roster loading, batch validation, safer amount parsing, and Etherscan transaction links
 - Verified the full encrypted Sepolia smoke flow on May 12, 2026
 
-## Wave 5 - Next Hardening
+## Wave 5 - Final Hardening
 
-Status: planned
+Status: deployed to Ethereum Sepolia
 
-- Multisig ownership and treasury administration
-- Auditor/compliance selective-disclosure permits
-- Payroll groups, departments, and CSV import
-- Recurring payroll automation
-- Confidential bonus and one-time grant flows
+- Safe-ready two-step ownership transfer with delegated payroll and treasury admins
+- Auditor/compliance selective disclosure with employee-scoped ciphertext grants
+- Auditor app-level disclosure revoke for future access checks, with documented CoFHE historical-grant limits
+- Payroll groups/departments with independent cadence, member management, due-run checks, and skipped inactive/locked members
+- Chainlink/Gelato-style `checkUpkeep` and `performUpkeep` hooks for recurring payroll groups
+- CSV employee import from the operator console
+- Confidential bonus and one-time grant flow
 - Treasury runway analytics and funding alerts
-- Bundle splitting for the CoFHE/WASM payload
+- Bundle splitting for CoFHE, wallet, React, motion, icons, and query dependencies
+- Expanded contract coverage to 17 passing tests
+
+## Live Wave 5 Deployment
+
+Status: complete
+
+- Contract: `0x2d54375aef6cfdF0D0F696363b000119a26F5E8e`
+- Owner: `0xB3A78E23993cc416DF79c8E954e427Ef15063b20`
+- Frontend env updated to the Wave 5 address
+- Vercel Production and Preview env updated to the Wave 5 address
+- Vercel production deployment completed at `https://fhepaye.vercel.app`
+- SPA route fallback added so `/app` and `/how-it-works` load directly on Vercel
+- Hardened redeploy blocks payroll when the treasury is below the configured alert threshold
+- Batch payroll skips inactive, locked, or not-due employees instead of reverting the full batch
+- Live encrypted Sepolia smoke passed salary, payroll, withdrawal, claim, bonus, auditor, group, and treasury alert flows

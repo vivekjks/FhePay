@@ -1,6 +1,5 @@
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, BookOpen, CheckCircle2, ShieldCheck, UserRoundCog, Wallet } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, UserRoundCog, Wallet } from 'lucide-react';
 import { useAccount, useChainId, useReadContract } from 'wagmi';
 import { sepolia } from 'viem/chains';
 import { ConnectBar } from '../components/ConnectBar';
@@ -8,6 +7,8 @@ import { ContractStatus } from '../components/ContractStatus';
 import { EmployerPanel } from '../components/EmployerPanel';
 import { EmployeePanel } from '../components/EmployeePanel';
 import { ActivityLog } from '../components/ActivityLog';
+import { Wave5Panel } from '../components/Wave5Panel';
+import { AuditorPanel } from '../components/AuditorPanel';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
 import { useCofheReady } from '../hooks/useCofheReady';
@@ -24,33 +25,70 @@ export function Dashboard() {
     functionName: 'owner',
     query: { enabled: !!contract },
   });
+  const { data: pendingOwner } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'pendingOwner',
+    query: { enabled: !!contract },
+  });
+  const { data: isPayrollAdmin } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'isPayrollAdmin',
+    args: address ? [address] : undefined,
+    query: { enabled: !!contract && !!address },
+  });
+  const { data: isTreasuryAdmin } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'isTreasuryAdmin',
+    args: address ? [address] : undefined,
+    query: { enabled: !!contract && !!address },
+  });
+  const { data: isAuditorRole } = useReadContract({
+    address: contract,
+    abi: fhePayAbi,
+    functionName: 'isAuditor',
+    args: address ? [address] : undefined,
+    query: { enabled: !!contract && !!address },
+  });
 
-  const isEmployer =
+  const isOwner =
     !!owner &&
     !!address &&
     (owner as string).toLowerCase() === address.toLowerCase();
+  const isPendingOwner =
+    !!pendingOwner &&
+    !!address &&
+    (pendingOwner as string).toLowerCase() === address.toLowerCase();
+  const canOperatePayroll = isOwner || isPayrollAdmin === true;
+  const canOperateTreasury = isOwner || isTreasuryAdmin === true;
+  const isOperator = canOperatePayroll || canOperateTreasury;
+  const canUseManagementPanel = isOperator || isPendingOwner;
   const onSepolia = chainId === sepolia.id;
+  const roleLabel = !isConnected
+    ? 'Pending'
+    : isOwner
+      ? 'Owner'
+      : isPendingOwner
+        ? 'Pending owner'
+      : canOperatePayroll
+        ? 'Payroll admin'
+        : canOperateTreasury
+          ? 'Treasury admin'
+          : isAuditorRole
+            ? 'Auditor'
+            : 'Employee';
 
   return (
     <div className="dashboard-page">
       <motion.header className="dashboard-hero" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <div>
-          <p className="eyebrow">FhePay Wave 4</p>
-          <h1>Confidential payroll console</h1>
+          <p className="eyebrow">FhePay</p>
+          <h1>Private payroll, settled on-chain.</h1>
           <p className="hero-copy">
-            Operate encrypted salaries, treasury-backed payroll, private employee balances, and verified ETH claims on
-            Ethereum Sepolia.
+            Encrypt salaries, run payroll, and settle verified ETH claims from one Sepolia dashboard.
           </p>
-          <div className="hero-actions">
-            <Link to="/resources" className="btn btn-secondary">
-              <BookOpen size={16} />
-              Docs
-            </Link>
-            <Link to="/status" className="btn btn-secondary">
-              <Activity size={16} />
-              Status
-            </Link>
-          </div>
         </div>
         <div className="readiness-panel" aria-label="Runtime readiness">
           <div>
@@ -71,7 +109,7 @@ export function Dashboard() {
           <div>
             <UserRoundCog size={18} />
             <span>Role</span>
-            <strong>{isConnected ? (isEmployer ? 'Employer' : 'Employee') : 'Pending'}</strong>
+            <strong>{roleLabel}</strong>
           </div>
         </div>
       </motion.header>
@@ -85,23 +123,29 @@ export function Dashboard() {
       {contract && <ContractStatus />}
       <ConnectBar />
 
-      {isConnected && contract && isEmployer && (
+      {isConnected && contract && canUseManagementPanel && (
         <>
-          <EmployerPanel />
+          {(canOperatePayroll || canOperateTreasury) && <EmployerPanel />}
+          <Wave5Panel
+            isOwner={isOwner}
+            canOperatePayroll={canOperatePayroll}
+            canOperateTreasury={canOperateTreasury}
+          />
+          {isAuditorRole === true && <AuditorPanel />}
           <EmployeePanel />
           <ActivityLog />
         </>
       )}
 
-      {isConnected && contract && !isEmployer && (
+      {isConnected && contract && !canUseManagementPanel && (
         <>
+          {isAuditorRole === true && <AuditorPanel />}
           <EmployeePanel />
           <section className="card panel-card">
-            <p className="eyebrow">Privacy boundary</p>
-            <h2>Employee-scoped access</h2>
+            <p className="eyebrow">{isAuditorRole ? 'Auditor access' : 'Privacy boundary'}</p>
+            <h2>{isAuditorRole ? 'Selective disclosure wallet' : 'Employee-scoped access'}</h2>
             <p className="prose-muted">
-              This wallet can decrypt only ciphertext handles granted to it by the contract. Final ETH claim amounts are
-              public settlement events.
+              This wallet can decrypt only ciphertext handles granted by the contract.
             </p>
           </section>
         </>

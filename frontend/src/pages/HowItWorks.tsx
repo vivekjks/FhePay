@@ -129,9 +129,9 @@ claimWithdrawal verifies proof and transfers ETH`}
         <Link to="/app" className="btn">
           Open dashboard
         </Link>
-        <Link to="/resources" className="btn btn-ghost">
-          Read the resources
-        </Link>
+        <a href="https://cofhe-docs.fhenix.zone/" target="_blank" rel="noreferrer" className="btn btn-secondary">
+          CoFHE docs
+        </a>
       </div>
     </div>
   );

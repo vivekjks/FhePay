@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "WebFetch(domain:cofhe-docs.fhenix.zone)",
-      "mcp__OpusMax__web_search",
-      "WebFetch(domain:www.fhenix.io)"
-    ]
-  }
-}

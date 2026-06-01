@@ -1,5 +1,5 @@
 import { useReadContract } from 'wagmi';
-import { Copy, ExternalLink, Server, Users, Wallet } from 'lucide-react';
+import { AlertTriangle, Copy, ExternalLink, Server, Users, Wallet } from 'lucide-react';
 import { sepolia } from 'viem/chains';
 import { fhePayAbi } from '../abi/fhepay';
 import { getFhePayAddress } from '../constants';
@@ -26,6 +26,12 @@ export function ContractStatus() {
     functionName: 'employeeCount',
     query: { enabled: !!contractAddress },
   });
+  const { data: treasuryBelowAlert } = useReadContract({
+    address: contractAddress,
+    abi: fhePayAbi,
+    functionName: 'treasuryBelowAlert',
+    query: { enabled: !!contractAddress },
+  });
 
   if (!contractAddress) return null;
   const safeAddress = contractAddress;
@@ -50,11 +56,11 @@ export function ContractStatus() {
         </div>
       </div>
       <div className="status-tile">
-        <Wallet size={18} />
+        {treasuryBelowAlert ? <AlertTriangle size={18} /> : <Wallet size={18} />}
         <div>
           <span className="label">Treasury</span>
           <strong>{typeof treasuryBalance === 'bigint' ? formatEtherAmount(treasuryBalance) : 'Loading...'}</strong>
-          <small>Claim liquidity</small>
+          <small>{treasuryBelowAlert ? 'Below alert threshold' : 'Claim liquidity'}</small>
         </div>
       </div>
       <div className="status-tile">

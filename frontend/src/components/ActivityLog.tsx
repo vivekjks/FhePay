@@ -81,6 +81,73 @@ export function ActivityLog() {
   useWatchContractEvent({
     address: contract,
     abi: fhePayAbi,
+    eventName: 'BonusGranted',
+    enabled: !!contract,
+    onLogs(logs: unknown[]) {
+      logs.forEach((log) => {
+        const args = (log as { args?: { employee?: `0x${string}` } }).args;
+        if (args?.employee) push(`Bonus granted to ${shortAddress(args.employee)}`);
+      });
+    },
+  });
+
+  useWatchContractEvent({
+    address: contract,
+    abi: fhePayAbi,
+    eventName: 'PayrollGroupPaid',
+    enabled: !!contract,
+    onLogs(logs: unknown[]) {
+      logs.forEach((log) => {
+        const args = (log as { args?: { groupId?: bigint; count?: bigint } }).args;
+        push(`Group ${(args?.groupId ?? 0n).toString()} payroll sent to ${(args?.count ?? 0n).toString()} employees`);
+      });
+    },
+  });
+
+  useWatchContractEvent({
+    address: contract,
+    abi: fhePayAbi,
+    eventName: 'PayrollGroupUpkeepPerformed',
+    enabled: !!contract,
+    onLogs(logs: unknown[]) {
+      logs.forEach((log) => {
+        const args = (log as { args?: { groupId?: bigint; count?: bigint } }).args;
+        push(`Automation ran group ${(args?.groupId ?? 0n).toString()} for ${(args?.count ?? 0n).toString()} employees`);
+      });
+    },
+  });
+
+  useWatchContractEvent({
+    address: contract,
+    abi: fhePayAbi,
+    eventName: 'OwnershipTransferStarted',
+    enabled: !!contract,
+    onLogs(logs: unknown[]) {
+      logs.forEach((log) => {
+        const args = (log as { args?: { newOwner?: `0x${string}` } }).args;
+        if (args?.newOwner) push(`Ownership transfer started for ${shortAddress(args.newOwner)}`);
+      });
+    },
+  });
+
+  useWatchContractEvent({
+    address: contract,
+    abi: fhePayAbi,
+    eventName: 'AuditorAccessGranted',
+    enabled: !!contract,
+    onLogs(logs: unknown[]) {
+      logs.forEach((log) => {
+        const args = (log as { args?: { auditor?: `0x${string}`; employee?: `0x${string}` } }).args;
+        if (args?.auditor && args?.employee) {
+          push(`Auditor ${shortAddress(args.auditor)} can review ${shortAddress(args.employee)}`);
+        }
+      });
+    },
+  });
+
+  useWatchContractEvent({
+    address: contract,
+    abi: fhePayAbi,
     eventName: 'TreasuryFunded',
     enabled: !!contract,
     onLogs(logs: unknown[]) {
