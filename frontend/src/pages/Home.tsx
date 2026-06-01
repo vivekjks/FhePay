@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
-  BadgeCheck,
   Banknote,
   CalendarClock,
   FileSpreadsheet,
@@ -95,10 +94,6 @@ export function Home() {
 
         <figure className="hero-brand-card">
           <img src={heroMark} alt="FhePay confidential payroll logo mark" />
-          <figcaption>
-            <BadgeCheck size={15} />
-            Hardened contract, live dashboard, verified claim flow
-          </figcaption>
         </figure>
       </motion.section>
 
