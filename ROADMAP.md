@@ -25,7 +25,7 @@ Status: complete
 - Added roster loading, batch validation, safer amount parsing, and Etherscan transaction links
 - Verified the full encrypted Sepolia smoke flow on May 12, 2026
 
-## Wave 5 - Final Hardening
+## Wave 5 - Final  competed 
 
 Status: deployed to Ethereum Sepolia
 
@@ -54,3 +54,4 @@ Status: complete
 - Hardened redeploy blocks payroll when the treasury is below the configured alert threshold
 - Batch payroll skips inactive, locked, or not-due employees instead of reverting the full batch
 - Live encrypted Sepolia smoke passed salary, payroll, withdrawal, claim, bonus, auditor, group, and treasury alert flows
+

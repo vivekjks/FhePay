@@ -62,7 +62,7 @@ Official CoFHE docs: [https://cofhe-docs.fhenix.zone/](https://cofhe-docs.fhenix
 - Added `cancelWithdrawal()` so employees can restore pending claims to encrypted balance
 - Hardened frontend amount parsing and build stability
 
-### Wave 5 - Final Hardening
+### Wave 5 - Final Completed 🥰
 
 - Added OpenZeppelin two-step ownership transfer for Safe-ready handoff
 - Added delegated payroll and treasury admin roles
@@ -78,7 +78,7 @@ Official CoFHE docs: [https://cofhe-docs.fhenix.zone/](https://cofhe-docs.fhenix
 
 ### Smart Contract
 
-[`contracts/contracts/FhePay.sol`](contracts/contracts/FhePay.sol)
+`[contracts/contracts/FhePay.sol](contracts/contracts/FhePay.sol)`
 
 Main capabilities:
 
@@ -122,7 +122,7 @@ Public operational state:
 
 ### Frontend
 
-[`frontend/`](frontend/)
+`[frontend/](frontend/)`
 
 The frontend is a Vite + React + wagmi app. It handles:
 
@@ -146,6 +146,8 @@ flowchart TD
   F --> G["Client runs decryptForTx and submits proof"]
   G --> H["claimWithdrawal verifies proof and transfers ETH"]
 ```
+
+
 
 Relevant docs:
 
@@ -243,6 +245,5 @@ Do not expose private keys, Pinata secrets, or OpenAI API keys to the browser ap
 - Automation forwarders must be explicitly granted payroll admin before calling `performUpkeep`.
 - `npm audit` still reports transitive Hardhat/Vite toolchain issues; automatic fixes require breaking major-version migrations.
 
-## Security Note
+##  
 
-Never commit private keys or API secrets. If a private key or API token was shared in chat, rotate it after use.
